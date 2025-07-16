@@ -1,0 +1,17 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "No build dependencies needed for static site"
+    build:
+      commands:
+        - echo "Building static site from web directory"
+        - cp -r web/* .
+        - ls -la
+  artifacts:
+    baseDirectory: /
+    files:
+      - '**/*'
+  cache:
+    paths: [] 
