@@ -2,6 +2,9 @@
 let allLeads = [];
 let filteredLeads = [];
 let summaryData = {};
+let allCities = new Set();
+let selectedCityFilter = '';
+let currentCityIndex = -1;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -54,6 +57,9 @@ function populateFilterDropdowns() {
     const states = [...new Set(allLeads.map(lead => lead.state).filter(state => state && state !== 'N/A'))].sort();
     const cities = [...new Set(allLeads.map(lead => lead.city).filter(city => city && city !== 'N/A'))].sort();
     
+    // Store cities for autocomplete
+    allCities = new Set(cities);
+    
     // Populate state filter
     const stateFilter = document.getElementById('state-filter');
     states.forEach(state => {
@@ -61,15 +67,6 @@ function populateFilterDropdowns() {
         option.value = state;
         option.textContent = state;
         stateFilter.appendChild(option);
-    });
-    
-    // Populate city filter
-    const cityFilter = document.getElementById('city-filter');
-    cities.forEach(city => {
-        const option = document.createElement('option');
-        option.value = city;
-        option.textContent = city;
-        cityFilter.appendChild(option);
     });
 }
 
@@ -86,9 +83,94 @@ function setupEventListeners() {
     document.getElementById('priority-filter').addEventListener('change', applyFilters);
     document.getElementById('category-filter').addEventListener('change', applyFilters);
     document.getElementById('state-filter').addEventListener('change', applyFilters);
-    document.getElementById('city-filter').addEventListener('change', applyFilters);
     document.getElementById('zip-filter').addEventListener('input', applyFilters);
     document.getElementById('search-filter').addEventListener('input', applyFilters);
+    
+    // City autocomplete functionality
+    const cityInput = document.getElementById('city-filter');
+    const citySuggestions = document.getElementById('city-suggestions');
+    
+    cityInput.addEventListener('input', function(e) {
+        const value = e.target.value.toLowerCase().trim();
+        
+        if (value.length === 0) {
+            citySuggestions.classList.remove('show');
+            selectedCityFilter = '';
+            applyFilters();
+            return;
+        }
+        
+        const matches = [...allCities].filter(city => 
+            city.toLowerCase().includes(value)
+        ).slice(0, 10).sort();
+        
+        if (matches.length > 0) {
+            citySuggestions.innerHTML = matches.map(city => 
+                `<div class="suggestion-item" data-city="${city}">${city}</div>`
+            ).join('');
+            citySuggestions.classList.add('show');
+        } else {
+            citySuggestions.innerHTML = '<div class="no-suggestions">No cities found</div>';
+            citySuggestions.classList.add('show');
+        }
+        
+        currentCityIndex = -1;
+    });
+    
+    // Handle city selection
+    citySuggestions.addEventListener('click', function(e) {
+        if (e.target.classList.contains('suggestion-item')) {
+            const city = e.target.dataset.city;
+            cityInput.value = city;
+            selectedCityFilter = city;
+            citySuggestions.classList.remove('show');
+            applyFilters();
+        }
+    });
+    
+    // Handle keyboard navigation
+    cityInput.addEventListener('keydown', function(e) {
+        const suggestions = citySuggestions.querySelectorAll('.suggestion-item');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            currentCityIndex = Math.min(currentCityIndex + 1, suggestions.length - 1);
+            updateHighlight(suggestions);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            currentCityIndex = Math.max(currentCityIndex - 1, -1);
+            updateHighlight(suggestions);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (currentCityIndex >= 0 && suggestions[currentCityIndex]) {
+                const city = suggestions[currentCityIndex].dataset.city;
+                cityInput.value = city;
+                selectedCityFilter = city;
+                citySuggestions.classList.remove('show');
+                applyFilters();
+            }
+        } else if (e.key === 'Escape') {
+            citySuggestions.classList.remove('show');
+        }
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!cityInput.contains(e.target) && !citySuggestions.contains(e.target)) {
+            citySuggestions.classList.remove('show');
+        }
+    });
+}
+
+// Update highlight for keyboard navigation
+function updateHighlight(suggestions) {
+    suggestions.forEach((item, index) => {
+        if (index === currentCityIndex) {
+            item.classList.add('highlighted');
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
 }
 
 // Apply filters to leads
@@ -96,7 +178,6 @@ function applyFilters() {
     const priorityFilter = document.getElementById('priority-filter').value;
     const categoryFilter = document.getElementById('category-filter').value;
     const stateFilter = document.getElementById('state-filter').value;
-    const cityFilter = document.getElementById('city-filter').value;
     const zipFilter = document.getElementById('zip-filter').value.toLowerCase();
     const searchFilter = document.getElementById('search-filter').value.toLowerCase();
 
@@ -116,8 +197,8 @@ function applyFilters() {
             return false;
         }
         
-        // City filter
-        if (cityFilter && lead.city !== cityFilter) {
+        // City filter (now uses autocomplete)
+        if (selectedCityFilter && lead.city !== selectedCityFilter) {
             return false;
         }
         
@@ -156,6 +237,10 @@ function resetFilters() {
     document.getElementById('city-filter').value = '';
     document.getElementById('zip-filter').value = '';
     document.getElementById('search-filter').value = '';
+    
+    // Reset city autocomplete
+    selectedCityFilter = '';
+    document.getElementById('city-suggestions').classList.remove('show');
     
     filteredLeads = [...allLeads];
     renderLeadsTable();

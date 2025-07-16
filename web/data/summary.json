@@ -1,11 +1,12 @@
 {
   "total_leads": 296898,
-  "hot_leads": 20779,
-  "a_plus_leads": 7236,
+  "hot_leads": 177,
+  "a_plus_leads": 26,
   "podiatrist_groups": 14228,
   "wound_care_groups": 6555,
   "mohs_groups": 1319,
-  "zip_codes_covered": 152435,
+  "zip_codes_covered": 17842,
   "avg_population": 16903,
-  "last_updated": "2025-07-15T21:16:29.153682"
+  "last_updated": "2025-07-15T21:38:59.110141",
+  "scoring_system": "recalibrated"
 }
