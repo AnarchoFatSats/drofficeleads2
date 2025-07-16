@@ -39,6 +39,16 @@
                 </div>
             </div>
             
+            <div class="stat-card gold">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="a-plus-leads">Loading...</div>
+                    <div class="stat-label">A+ Priority</div>
+                </div>
+            </div>
+            
             <div class="stat-card">
                 <div class="stat-icon">
                     <i class="fas fa-foot"></i>
@@ -81,15 +91,32 @@
                     <option value="Wound Care">Wound Care</option>
                     <option value="Mohs Surgery">Mohs Surgery</option>
                     <option value="Primary Care">Primary Care</option>
-                    <option value="Multi-Specialty Podiatrist">Multi-Specialty Podiatrist</option>
-                    <option value="Multi-Specialty Wound Care">Multi-Specialty Wound Care</option>
-                    <option value="Mohs Surgery Specialists">Mohs Surgery Specialists</option>
+                    <option value="Podiatrist + Wound Care">Podiatrist + Wound Care</option>
                 </select>
             </div>
             
             <div class="filter-group">
+                <label for="state-filter">State:</label>
+                <select id="state-filter">
+                    <option value="">All States</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="city-filter">City:</label>
+                <select id="city-filter">
+                    <option value="">All Cities</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="zip-filter">ZIP Code:</label>
+                <input type="text" id="zip-filter" placeholder="Enter ZIP code...">
+            </div>
+            
+            <div class="filter-group">
                 <label for="search-filter">Search:</label>
-                <input type="text" id="search-filter" placeholder="Search practice name, owner, specialty, address, ZIP...">
+                <input type="text" id="search-filter" placeholder="Search practice name, owner, specialty...">
             </div>
             
             <button class="btn-reset" onclick="resetFilters()">
@@ -120,10 +147,10 @@
                             <th>Owner Phone</th>
                             <th>Category</th>
                             <th>Providers</th>
-                            <th>Address</th>
+                            <th>City</th>
+                            <th>State</th>
                             <th>ZIP</th>
                             <th>Entity</th>
-                            <th>NPI</th>
                             <th>Actions</th>
                         </tr>
                     </thead>

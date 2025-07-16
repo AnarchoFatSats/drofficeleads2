@@ -85,33 +85,40 @@ def quick_update():
     df['Clean_Owner_Phone'] = df['Owner_Phone'].apply(clean_phone)
     df['Clean_Primary_Phone'] = df['Primary_Phone'].apply(clean_phone)
     
-    # Quick priority scoring for hot leads
+    # Enhanced priority scoring for more A+ leads
     df['Score'] = 0
-    df.loc[df['Primary_Specialty'].str.contains('Podiatrist', na=False), 'Score'] += 40
-    df.loc[df['Primary_Specialty'].str.contains('Wound Care', na=False), 'Score'] += 35
-    df.loc[df['Primary_Specialty'].str.contains('Mohs', na=False), 'Score'] += 30
-    df.loc[df['Primary_Specialty'].str.contains('Family Medicine', na=False), 'Score'] += 20
-    df.loc[df['Primary_Specialty'].str.contains('Internal Medicine', na=False), 'Score'] += 15
     
-    # Group size bonus
-    df.loc[df['Practice_Group_Size'] == 1, 'Score'] += 20
-    df.loc[df['Practice_Group_Size'] == 2, 'Score'] += 15
-    df.loc[df['Practice_Group_Size'].between(3, 5), 'Score'] += 10
+    # Base specialty scoring (increased values)
+    df.loc[df['Primary_Specialty'].str.contains('Podiatrist', na=False), 'Score'] += 50
+    df.loc[df['Primary_Specialty'].str.contains('Wound Care', na=False), 'Score'] += 45
+    df.loc[df['Primary_Specialty'].str.contains('Mohs', na=False), 'Score'] += 40
+    df.loc[df['Primary_Specialty'].str.contains('Family Medicine', na=False), 'Score'] += 25
+    df.loc[df['Primary_Specialty'].str.contains('Internal Medicine', na=False), 'Score'] += 20
     
-    # Phone bonus
+    # Group size bonus (smaller is better for targeting)
+    df.loc[df['Practice_Group_Size'] == 1, 'Score'] += 25
+    df.loc[df['Practice_Group_Size'] == 2, 'Score'] += 20
+    df.loc[df['Practice_Group_Size'].between(3, 5), 'Score'] += 15
+    
+    # Phone availability bonus
     df.loc[df['Clean_Practice_Phone'].notna(), 'Score'] += 10
-    df.loc[df['Clean_Owner_Phone'].notna(), 'Score'] += 5
+    df.loc[df['Clean_Owner_Phone'].notna(), 'Score'] += 10
     
     # EIN bonus (indicates established business)
-    df.loc[df['EIN'].notna(), 'Score'] += 5
+    df.loc[df['EIN'].notna() & (df['EIN'] != '<UNAVAIL>'), 'Score'] += 10
     
-    hot_leads_count = (df['Score'] >= 75).sum()  # Lowered threshold since we're seeing 75s
+    # Sole proprietor bonus (easier to contact decision maker)
+    df.loc[df['Is_Sole_Proprietor'] == True, 'Score'] += 5
+    
+    hot_leads_count = (df['Score'] >= 75).sum()
+    a_plus_count = (df['Score'] >= 90).sum()
     unique_zips = df['Practice_ZIP'].nunique()
     
     # Update summary.json
     summary_data = {
         "total_leads": total_leads,
         "hot_leads": int(hot_leads_count),
+        "a_plus_leads": int(a_plus_count),
         "podiatrist_groups": int(podiatrist_count),
         "wound_care_groups": int(wound_care_count),
         "mohs_groups": int(mohs_count),
@@ -167,7 +174,7 @@ def quick_update():
         else:
             category = "Primary Care"
         
-        # Address
+        # Address components
         address_parts = []
         for field in ['Practice_Address_Line1', 'Practice_City', 'Practice_State']:
             if pd.notna(row.get(field)):
@@ -176,6 +183,8 @@ def quick_update():
         
         # Get EIN for business info
         ein = str(row.get('EIN', '')).strip() if pd.notna(row.get('EIN')) else None
+        if ein == '<UNAVAIL>':
+            ein = None
         
         lead_data = {
             "id": len(hot_leads_data) + 1,
@@ -189,6 +198,8 @@ def quick_update():
             "owner_phone": format_phone(owner_phone) if owner_phone else None,
             "best_phone": format_phone(best_phone) if best_phone != 'N/A' else 'N/A',
             "address": address,
+            "city": str(row.get('Practice_City', 'N/A')),
+            "state": str(row.get('Practice_State', 'N/A')),
             "zip": str(row.get('Practice_ZIP', 'N/A')),
             "ein": ein,
             "entity_type": str(row.get('Entity_Type', 'N/A')),
@@ -221,6 +232,7 @@ def quick_update():
     print("="*60)
     print(f"Total Leads: {total_leads:,}")
     print(f"Hot Leads (Score ≥75): {hot_leads_count:,}")
+    print(f"A+ Priority Leads (Score ≥90): {a_plus_count:,}")
     print(f"Podiatrist Groups: {podiatrist_count:,}")
     print(f"Wound Care Groups: {wound_care_count:,}")
     print(f"Mohs Surgery Groups: {mohs_count:,}")
@@ -233,6 +245,7 @@ def quick_update():
     print("✅ EIN & Business Entity Type")
     print("✅ NPI Numbers")
     print("✅ Sole Proprietor Status")
+    print("✅ City/State/ZIP for Advanced Filtering")
     print("\n✅ Web dashboard data updated successfully!")
     print("Ready for AWS Amplify deployment!")
 

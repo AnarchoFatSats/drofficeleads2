@@ -26,6 +26,7 @@ async function loadData() {
         
         // Initialize the UI
         updateDashboardStats();
+        populateFilterDropdowns();
         filteredLeads = [...allLeads];
         renderLeadsTable();
         updateLastUpdated();
@@ -42,8 +43,34 @@ async function loadData() {
 function updateDashboardStats() {
     document.getElementById('total-leads').textContent = summaryData.total_leads?.toLocaleString() || '0';
     document.getElementById('hot-leads').textContent = summaryData.hot_leads?.toLocaleString() || '0';
+    document.getElementById('a-plus-leads').textContent = summaryData.a_plus_leads?.toLocaleString() || '0';
     document.getElementById('podiatrist-groups').textContent = summaryData.podiatrist_groups?.toLocaleString() || '0';
     document.getElementById('wound-care-groups').textContent = summaryData.wound_care_groups?.toLocaleString() || '0';
+}
+
+// Populate filter dropdowns
+function populateFilterDropdowns() {
+    // Get unique states and cities
+    const states = [...new Set(allLeads.map(lead => lead.state).filter(state => state && state !== 'N/A'))].sort();
+    const cities = [...new Set(allLeads.map(lead => lead.city).filter(city => city && city !== 'N/A'))].sort();
+    
+    // Populate state filter
+    const stateFilter = document.getElementById('state-filter');
+    states.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.textContent = state;
+        stateFilter.appendChild(option);
+    });
+    
+    // Populate city filter
+    const cityFilter = document.getElementById('city-filter');
+    cities.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city;
+        cityFilter.appendChild(option);
+    });
 }
 
 // Update last updated timestamp
@@ -58,6 +85,9 @@ function updateLastUpdated() {
 function setupEventListeners() {
     document.getElementById('priority-filter').addEventListener('change', applyFilters);
     document.getElementById('category-filter').addEventListener('change', applyFilters);
+    document.getElementById('state-filter').addEventListener('change', applyFilters);
+    document.getElementById('city-filter').addEventListener('change', applyFilters);
+    document.getElementById('zip-filter').addEventListener('input', applyFilters);
     document.getElementById('search-filter').addEventListener('input', applyFilters);
 }
 
@@ -65,6 +95,9 @@ function setupEventListeners() {
 function applyFilters() {
     const priorityFilter = document.getElementById('priority-filter').value;
     const categoryFilter = document.getElementById('category-filter').value;
+    const stateFilter = document.getElementById('state-filter').value;
+    const cityFilter = document.getElementById('city-filter').value;
+    const zipFilter = document.getElementById('zip-filter').value.toLowerCase();
     const searchFilter = document.getElementById('search-filter').value.toLowerCase();
 
     filteredLeads = allLeads.filter(lead => {
@@ -77,6 +110,21 @@ function applyFilters() {
         if (categoryFilter && !lead.category.includes(categoryFilter)) {
             return false;
         }
+        
+        // State filter
+        if (stateFilter && lead.state !== stateFilter) {
+            return false;
+        }
+        
+        // City filter
+        if (cityFilter && lead.city !== cityFilter) {
+            return false;
+        }
+        
+        // ZIP filter
+        if (zipFilter && !lead.zip.toLowerCase().includes(zipFilter)) {
+            return false;
+        }
 
         // Search filter (searches across multiple fields)
         if (searchFilter) {
@@ -84,8 +132,6 @@ function applyFilters() {
                 lead.practice_name,
                 lead.owner_name,
                 lead.specialties,
-                lead.address,
-                lead.zip,
                 lead.category,
                 lead.entity_type,
                 lead.npi
@@ -106,6 +152,9 @@ function applyFilters() {
 function resetFilters() {
     document.getElementById('priority-filter').value = '';
     document.getElementById('category-filter').value = '';
+    document.getElementById('state-filter').value = '';
+    document.getElementById('city-filter').value = '';
+    document.getElementById('zip-filter').value = '';
     document.getElementById('search-filter').value = '';
     
     filteredLeads = [...allLeads];
@@ -146,10 +195,10 @@ function renderLeadsTable() {
                 </div>
             </td>
             <td>
-                ${lead.practice_phone ? `<a href="tel:${lead.practice_phone.replace(/[^\d]/g, '')}" class="phone-link"><i class="fas fa-phone"></i> ${lead.practice_phone}</a>` : '<span class="no-phone">N/A</span>'}
+                ${lead.practice_phone ? `<span class="phone-display">${lead.practice_phone}</span>` : '<span class="no-phone">N/A</span>'}
             </td>
             <td>
-                ${lead.owner_phone ? `<a href="tel:${lead.owner_phone.replace(/[^\d]/g, '')}" class="phone-link"><i class="fas fa-phone"></i> ${lead.owner_phone}</a>` : '<span class="no-phone">N/A</span>'}
+                ${lead.owner_phone ? `<span class="phone-display">${lead.owner_phone}</span>` : '<span class="no-phone">N/A</span>'}
             </td>
             <td>
                 <span class="category-badge ${getCategoryClass(lead.category)}">
@@ -160,8 +209,13 @@ function renderLeadsTable() {
                 <strong>${lead.providers}</strong> provider${lead.providers > 1 ? 's' : ''}
             </td>
             <td>
-                <div class="address-cell">
-                    ${lead.address || 'Address not available'}
+                <div class="city-info">
+                    ${lead.city || 'N/A'}
+                </div>
+            </td>
+            <td>
+                <div class="state-info">
+                    ${lead.state || 'N/A'}
                 </div>
             </td>
             <td><strong>${lead.zip}</strong></td>
@@ -171,14 +225,7 @@ function renderLeadsTable() {
                 </div>
             </td>
             <td>
-                <div class="npi-info">
-                    ${lead.npi !== 'N/A' ? lead.npi : 'N/A'}
-                </div>
-            </td>
-            <td>
                 <div class="action-buttons">
-                    ${lead.practice_phone ? `<a href="tel:${lead.practice_phone.replace(/[^\d]/g, '')}" class="btn-call" title="Call Practice"><i class="fas fa-phone"></i></a>` : ''}
-                    ${lead.owner_phone ? `<a href="tel:${lead.owner_phone.replace(/[^\d]/g, '')}" class="btn-call-owner" title="Call Owner"><i class="fas fa-user-tie"></i></a>` : ''}
                     <button class="btn-copy" onclick="copyLeadInfo(${lead.id})" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
@@ -230,6 +277,8 @@ CONTACT INFORMATION
 Practice Phone: ${lead.practice_phone || 'N/A'}
 Owner Phone: ${lead.owner_phone || 'N/A'}
 Address: ${lead.address || 'N/A'}
+City: ${lead.city || 'N/A'}
+State: ${lead.state || 'N/A'}
 ZIP: ${lead.zip || 'N/A'}
 
 BUSINESS DETAILS
@@ -265,7 +314,7 @@ function exportToCSV() {
 
     const headers = [
         'Score', 'Priority', 'Practice Name', 'Owner/Contact', 'Practice Phone', 'Owner Phone',
-        'Category', 'Providers', 'Address', 'ZIP', 'Entity Type', 'NPI', 'EIN', 'Specialties',
+        'Category', 'Providers', 'City', 'State', 'ZIP', 'Entity Type', 'NPI', 'EIN', 'Specialties',
         'Sole Proprietor'
     ];
 
@@ -280,7 +329,8 @@ function exportToCSV() {
             `"${lead.owner_phone || ''}"`,
             `"${lead.category}"`,
             lead.providers,
-            `"${lead.address || ''}"`,
+            `"${lead.city || ''}"`,
+            `"${lead.state || ''}"`,
             lead.zip,
             `"${lead.entity_type || ''}"`,
             lead.npi || '',
@@ -309,15 +359,6 @@ function downloadCSV(content, filename) {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     }
-}
-
-// Download full dataset
-function downloadFullDataset() {
-    const link = document.createElement('a');
-    link.href = '../rural_physician_leads_crm.xlsx';
-    link.download = 'rural_physician_leads_complete.xlsx';
-    link.click();
-    showNotification('Downloading complete dataset...');
 }
 
 // Show loading overlay

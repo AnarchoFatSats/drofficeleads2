@@ -65,6 +65,11 @@ body {
     color: white;
 }
 
+.stat-card.gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+    color: #8b4513;
+}
+
 .stat-icon {
     font-size: 2rem;
     opacity: 0.8;
@@ -104,7 +109,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    min-width: 200px;
+    min-width: 180px;
 }
 
 .filter-group label {
@@ -343,23 +348,12 @@ body {
     margin-top: 0.25rem;
 }
 
-/* Phone Links */
-.phone-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #059669;
-    text-decoration: none;
+/* Phone Display */
+.phone-display {
+    font-family: monospace;
     font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-    font-size: 0.85rem;
-}
-
-.phone-link:hover {
-    background: #ecfdf5;
-    color: #047857;
+    color: #1f2937;
+    font-size: 0.9rem;
 }
 
 .no-phone {
@@ -367,25 +361,18 @@ body {
     font-style: italic;
 }
 
-/* Address */
-.address-cell {
-    max-width: 200px;
+/* City/State Info */
+.city-info,
+.state-info {
     font-size: 0.85rem;
-    line-height: 1.4;
+    color: #374151;
+    text-align: center;
 }
 
 /* Entity Info */
 .entity-info {
     font-size: 0.8rem;
     color: #6b7280;
-    text-align: center;
-}
-
-/* NPI Info */
-.npi-info {
-    font-family: monospace;
-    font-size: 0.75rem;
-    color: #4b5563;
     text-align: center;
 }
 
@@ -396,8 +383,6 @@ body {
     justify-content: center;
 }
 
-.btn-call,
-.btn-call-owner,
 .btn-copy {
     display: inline-flex;
     align-items: center;
@@ -410,29 +395,6 @@ body {
     transition: all 0.2s ease;
     text-decoration: none;
     font-size: 0.8rem;
-}
-
-.btn-call {
-    background: #10b981;
-    color: white;
-}
-
-.btn-call:hover {
-    background: #059669;
-    transform: scale(1.05);
-}
-
-.btn-call-owner {
-    background: #3b82f6;
-    color: white;
-}
-
-.btn-call-owner:hover {
-    background: #2563eb;
-    transform: scale(1.05);
-}
-
-.btn-copy {
     background: #6b7280;
     color: white;
 }
@@ -549,6 +511,10 @@ body {
     .leads-table td {
         padding: 0.75rem 0.5rem;
     }
+    
+    .filter-group {
+        min-width: 150px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -585,9 +551,8 @@ body {
     }
     
     .practice-name,
-    .owner-info,
-    .address-cell {
-        max-width: 150px;
+    .owner-info {
+        max-width: 120px;
     }
 }
 
