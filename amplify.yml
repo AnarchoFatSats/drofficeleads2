@@ -14,4 +14,4 @@ frontend:
     files:
       - '**/*'
   cache:
-    paths: [] 
+    paths: [] # Trigger rebuild to fix index.html deployment issue
