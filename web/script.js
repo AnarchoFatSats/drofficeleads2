@@ -50,32 +50,18 @@ function updateDashboardStats() {
 function updateLastUpdated() {
     if (summaryData.last_updated) {
         const date = new Date(summaryData.last_updated);
-        document.getElementById('last-updated').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        document.getElementById('last-updated').textContent = date.toLocaleString();
     }
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    // Filter event listeners
     document.getElementById('priority-filter').addEventListener('change', applyFilters);
     document.getElementById('category-filter').addEventListener('change', applyFilters);
-    document.getElementById('search-filter').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('search-filter').addEventListener('input', applyFilters);
 }
 
-// Debounce function for search input
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Apply filters to the leads
+// Apply filters to leads
 function applyFilters() {
     const priorityFilter = document.getElementById('priority-filter').value;
     const categoryFilter = document.getElementById('category-filter').value;
@@ -88,21 +74,24 @@ function applyFilters() {
         }
 
         // Category filter
-        if (categoryFilter && lead.category !== categoryFilter) {
+        if (categoryFilter && !lead.category.includes(categoryFilter)) {
             return false;
         }
 
-        // Search filter
+        // Search filter (searches across multiple fields)
         if (searchFilter) {
-            const searchableText = [
+            const searchFields = [
+                lead.practice_name,
+                lead.owner_name,
                 lead.specialties,
                 lead.address,
                 lead.zip,
                 lead.category,
-                lead.phone
-            ].join(' ').toLowerCase();
+                lead.entity_type,
+                lead.npi
+            ].map(field => (field || '').toLowerCase());
             
-            if (!searchableText.includes(searchFilter)) {
+            if (!searchFields.some(field => field.includes(searchFilter))) {
                 return false;
             }
         }
@@ -128,7 +117,7 @@ function renderLeadsTable() {
     const tbody = document.getElementById('leads-tbody');
     
     if (filteredLeads.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="loading">No leads match your filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="loading">No leads match your filters.</td></tr>';
         return;
     }
 
@@ -144,12 +133,31 @@ function renderLeadsTable() {
                     ${lead.priority}
                 </span>
             </td>
-            <td>${lead.category}</td>
             <td>
-                <strong>${lead.providers}</strong> provider${lead.providers > 1 ? 's' : ''}
+                <div class="practice-name">
+                    <strong>${lead.practice_name || 'N/A'}</strong>
+                    ${lead.ein ? `<div class="ein-info">EIN: ${lead.ein}</div>` : ''}
+                </div>
             </td>
             <td>
-                ${lead.phone ? `<a href="tel:${lead.phone}" class="btn-call"><i class="fas fa-phone"></i> ${lead.phone}</a>` : 'N/A'}
+                <div class="owner-info">
+                    ${lead.owner_name || 'N/A'}
+                    ${lead.is_sole_proprietor === 'True' ? '<div class="sole-prop">Sole Proprietor</div>' : ''}
+                </div>
+            </td>
+            <td>
+                ${lead.practice_phone ? `<a href="tel:${lead.practice_phone.replace(/[^\d]/g, '')}" class="phone-link"><i class="fas fa-phone"></i> ${lead.practice_phone}</a>` : '<span class="no-phone">N/A</span>'}
+            </td>
+            <td>
+                ${lead.owner_phone ? `<a href="tel:${lead.owner_phone.replace(/[^\d]/g, '')}" class="phone-link"><i class="fas fa-phone"></i> ${lead.owner_phone}</a>` : '<span class="no-phone">N/A</span>'}
+            </td>
+            <td>
+                <span class="category-badge ${getCategoryClass(lead.category)}">
+                    ${lead.category}
+                </span>
+            </td>
+            <td>
+                <strong>${lead.providers}</strong> provider${lead.providers > 1 ? 's' : ''}
             </td>
             <td>
                 <div class="address-cell">
@@ -158,17 +166,20 @@ function renderLeadsTable() {
             </td>
             <td><strong>${lead.zip}</strong></td>
             <td>
-                ${lead.population ? lead.population.toLocaleString() : 'N/A'}
+                <div class="entity-info">
+                    ${lead.entity_type || 'N/A'}
+                </div>
             </td>
             <td>
-                <div class="specialties-cell">
-                    ${formatSpecialties(lead.specialties)}
+                <div class="npi-info">
+                    ${lead.npi !== 'N/A' ? lead.npi : 'N/A'}
                 </div>
             </td>
             <td>
                 <div class="action-buttons">
-                    ${lead.phone ? `<a href="tel:${lead.phone}" class="btn-call"><i class="fas fa-phone"></i></a>` : ''}
-                    <button class="btn-email" onclick="copyLeadInfo(${lead.id})">
+                    ${lead.practice_phone ? `<a href="tel:${lead.practice_phone.replace(/[^\d]/g, '')}" class="btn-call" title="Call Practice"><i class="fas fa-phone"></i></a>` : ''}
+                    ${lead.owner_phone ? `<a href="tel:${lead.owner_phone.replace(/[^\d]/g, '')}" class="btn-call-owner" title="Call Owner"><i class="fas fa-user-tie"></i></a>` : ''}
+                    <button class="btn-copy" onclick="copyLeadInfo(${lead.id})" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -180,7 +191,7 @@ function renderLeadsTable() {
 // Get CSS class for score badge
 function getScoreClass(score) {
     if (score >= 80) return 'score-high';
-    if (score >= 60) return 'score-medium';
+    if (score >= 70) return 'score-medium';
     return 'score-low';
 }
 
@@ -188,52 +199,51 @@ function getScoreClass(score) {
 function getPriorityClass(priority) {
     if (priority === 'A+ Priority') return 'priority-a-plus';
     if (priority === 'A Priority') return 'priority-a';
+    if (priority === 'B+ Priority') return 'priority-b-plus';
     return 'priority-b';
 }
 
-// Format specialties for display
-function formatSpecialties(specialties) {
-    if (!specialties) return 'N/A';
-    
-    // Split by comma and create badges for each specialty
-    const specialtyList = specialties.split(',').map(s => s.trim());
-    
-    // Highlight key specialties
-    return specialtyList.map(specialty => {
-        let className = 'specialty-tag';
-        if (specialty.toLowerCase().includes('podiatrist')) {
-            className += ' specialty-podiatrist';
-        } else if (specialty.toLowerCase().includes('wound care')) {
-            className += ' specialty-wound-care';
-        } else if (specialty.toLowerCase().includes('mohs')) {
-            className += ' specialty-mohs';
-        }
-        
-        return `<span class="${className}">${specialty}</span>`;
-    }).join(' ');
+// Get CSS class for category badge
+function getCategoryClass(category) {
+    if (category.toLowerCase().includes('podiatrist')) return 'category-podiatrist';
+    if (category.toLowerCase().includes('wound care')) return 'category-wound-care';
+    if (category.toLowerCase().includes('mohs')) return 'category-mohs';
+    return 'category-primary';
 }
 
-// Copy lead information to clipboard
+// Copy comprehensive lead information to clipboard
 function copyLeadInfo(leadId) {
     const lead = allLeads.find(l => l.id === leadId);
     if (!lead) return;
 
     const leadInfo = `
-LEAD INFORMATION
+COMPREHENSIVE LEAD INFORMATION
+==============================
+Practice Name: ${lead.practice_name || 'N/A'}
+Owner/Contact: ${lead.owner_name || 'N/A'}
+Entity Type: ${lead.entity_type || 'N/A'}
+${lead.ein ? `EIN: ${lead.ein}` : ''}
+NPI: ${lead.npi || 'N/A'}
+
+CONTACT INFORMATION
+===================
+Practice Phone: ${lead.practice_phone || 'N/A'}
+Owner Phone: ${lead.owner_phone || 'N/A'}
+Address: ${lead.address || 'N/A'}
+ZIP: ${lead.zip || 'N/A'}
+
+BUSINESS DETAILS
 ================
 Priority: ${lead.priority}
 Category: ${lead.category}
+Specialties: ${lead.specialties || 'N/A'}
 Providers: ${lead.providers}
-Phone: ${lead.phone}
-Address: ${lead.address}
-ZIP: ${lead.zip}
-Population: ${lead.population?.toLocaleString() || 'N/A'}
-Specialties: ${lead.specialties}
 Score: ${lead.score}/100
+${lead.is_sole_proprietor === 'True' ? 'Business Type: Sole Proprietor' : ''}
     `.trim();
 
     navigator.clipboard.writeText(leadInfo).then(() => {
-        showNotification('Lead information copied to clipboard!');
+        showNotification('Comprehensive lead information copied to clipboard!');
     }).catch(() => {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -242,7 +252,7 @@ Score: ${lead.score}/100
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        showNotification('Lead information copied to clipboard!');
+        showNotification('Comprehensive lead information copied to clipboard!');
     });
 }
 
@@ -254,8 +264,9 @@ function exportToCSV() {
     }
 
     const headers = [
-        'Score', 'Priority', 'Category', 'Providers', 'Phone', 
-        'Address', 'ZIP', 'Population', 'Specialties'
+        'Score', 'Priority', 'Practice Name', 'Owner/Contact', 'Practice Phone', 'Owner Phone',
+        'Category', 'Providers', 'Address', 'ZIP', 'Entity Type', 'NPI', 'EIN', 'Specialties',
+        'Sole Proprietor'
     ];
 
     const csvContent = [
@@ -263,18 +274,24 @@ function exportToCSV() {
         ...filteredLeads.map(lead => [
             lead.score,
             `"${lead.priority}"`,
+            `"${lead.practice_name || ''}"`,
+            `"${lead.owner_name || ''}"`,
+            `"${lead.practice_phone || ''}"`,
+            `"${lead.owner_phone || ''}"`,
             `"${lead.category}"`,
             lead.providers,
-            `"${lead.phone || ''}"`,
             `"${lead.address || ''}"`,
             lead.zip,
-            lead.population || '',
-            `"${lead.specialties || ''}"`
+            `"${lead.entity_type || ''}"`,
+            lead.npi || '',
+            lead.ein || '',
+            `"${lead.specialties || ''}"`,
+            lead.is_sole_proprietor || ''
         ].join(','))
     ].join('\n');
 
-    downloadCSV(csvContent, 'rural_physician_leads.csv');
-    showNotification(`Exported ${filteredLeads.length} leads to CSV`);
+    downloadCSV(csvContent, 'comprehensive_rural_physician_leads.csv');
+    showNotification(`Exported ${filteredLeads.length} comprehensive leads to CSV`);
 }
 
 // Download CSV file
@@ -290,6 +307,7 @@ function downloadCSV(content, filename) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 }
 
@@ -304,46 +322,36 @@ function downloadFullDataset() {
 
 // Show loading overlay
 function showLoadingOverlay() {
-    document.getElementById('loading-overlay').classList.remove('hidden');
+    document.getElementById('loading-overlay').classList.add('visible');
 }
 
 // Hide loading overlay
 function hideLoadingOverlay() {
-    document.getElementById('loading-overlay').classList.add('hidden');
+    document.getElementById('loading-overlay').classList.remove('visible');
 }
 
 // Show notification
 function showNotification(message) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        <span>${message}</span>
-    `;
+    // Create notification element if it doesn't exist
+    let notification = document.querySelector('.notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.className = 'notification';
+        document.body.appendChild(notification);
+    }
     
-    // Add to document
-    document.body.appendChild(notification);
+    notification.textContent = message;
+    notification.classList.add('show');
     
-    // Remove after 3 seconds
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
+        notification.classList.remove('show');
     }, 3000);
 }
 
 // Show error message
 function showError(message) {
-    const tbody = document.getElementById('leads-tbody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="10" class="error">
-                <i class="fas fa-exclamation-triangle"></i>
-                ${message}
-            </td>
-        </tr>
-    `;
+    console.error(message);
+    showNotification('Error: ' + message);
 }
 
 // Add notification styles

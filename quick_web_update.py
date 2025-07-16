@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Quick Web Dashboard Update
-Efficiently updates web dashboard with key stats from comprehensive leads
+Efficiently updates web dashboard with comprehensive lead details including practice names and owner info
 """
 
 import pandas as pd
@@ -17,28 +17,61 @@ def clean_phone(phone):
     phone_clean = re.sub(r'[^\d]', '', phone_str)
     return phone_clean if len(phone_clean) >= 10 else None
 
+def format_phone(phone):
+    """Format phone number for display"""
+    if not phone or len(phone) < 10:
+        return phone
+    # Format as (XXX) XXX-XXXX
+    return f"({phone[:3]}) {phone[3:6]}-{phone[6:10]}"
+
+def get_best_practice_name(row):
+    """Get the best available practice name"""
+    # Priority: Legal Business Name > DBA Name > Other Organization Name
+    legal_name = row.get('Legal_Business_Name', '')
+    dba_name = row.get('DBA_Name', '')
+    other_name = row.get('Other_Organization_Name', '')
+    
+    if pd.notna(legal_name) and str(legal_name).strip():
+        return str(legal_name).strip()
+    elif pd.notna(dba_name) and str(dba_name).strip():
+        return str(dba_name).strip()
+    elif pd.notna(other_name) and str(other_name).strip():
+        return str(other_name).strip()
+    else:
+        # Individual provider name
+        first = str(row.get('Provider_First_Name', '')).strip()
+        last = str(row.get('Provider_Last_Name', '')).strip()
+        if first and last:
+            return f"{first} {last}"
+        return "Practice Name Not Available"
+
+def get_owner_info(row):
+    """Get owner/contact information"""
+    owner_name = row.get('Owner_Full_Name', '')
+    if pd.notna(owner_name) and str(owner_name).strip():
+        return str(owner_name).strip()
+    
+    # Try individual provider name if no owner
+    first = str(row.get('Provider_First_Name', '')).strip()
+    last = str(row.get('Provider_Last_Name', '')).strip()
+    if first and last:
+        credentials = str(row.get('Provider_Credentials', '')).strip()
+        name = f"{first} {last}"
+        if credentials:
+            name += f", {credentials}"
+        return name
+    
+    return "Contact Not Available"
+
 def quick_update():
-    """Quick update of web dashboard data"""
+    """Quick update of web dashboard data with comprehensive lead details"""
     print("Reading comprehensive leads data (this may take a moment)...")
     
-    # Read only the columns we need for faster processing
-    needed_cols = [
-        'Primary_Specialty', 'Practice_Group_Size', 'Practice_ZIP', 
-        'Practice_Phone', 'Owner_Phone', 'Practice_Address_Line1',
-        'Practice_City', 'Practice_State'
-    ]
-    
-    try:
-        # Try to read with specific columns for speed
-        df = pd.read_excel('comprehensive_rural_physician_leads.xlsx', usecols=needed_cols)
-    except:
-        # Fallback to reading all columns if column selection fails
-        print("Reading full file...")
-        df = pd.read_excel('comprehensive_rural_physician_leads.xlsx')
-    
+    # Read the comprehensive leads data
+    df = pd.read_excel('comprehensive_rural_physician_leads.xlsx')
     print(f"Loaded {len(df):,} leads")
     
-    # Quick calculations
+    # Quick calculations for summary
     total_leads = len(df)
     
     # Count specialties
@@ -47,9 +80,10 @@ def quick_update():
     wound_care_count = df['Primary_Specialty'].str.contains('Wound Care', na=False).sum()
     mohs_count = df['Primary_Specialty'].str.contains('Mohs', na=False).sum()
     
-    # Count phones
+    # Clean phone numbers
     df['Clean_Practice_Phone'] = df['Practice_Phone'].apply(clean_phone)
     df['Clean_Owner_Phone'] = df['Owner_Phone'].apply(clean_phone)
+    df['Clean_Primary_Phone'] = df['Primary_Phone'].apply(clean_phone)
     
     # Quick priority scoring for hot leads
     df['Score'] = 0
@@ -68,7 +102,10 @@ def quick_update():
     df.loc[df['Clean_Practice_Phone'].notna(), 'Score'] += 10
     df.loc[df['Clean_Owner_Phone'].notna(), 'Score'] += 5
     
-    hot_leads_count = (df['Score'] >= 80).sum()
+    # EIN bonus (indicates established business)
+    df.loc[df['EIN'].notna(), 'Score'] += 5
+    
+    hot_leads_count = (df['Score'] >= 75).sum()  # Lowered threshold since we're seeing 75s
     unique_zips = df['Practice_ZIP'].nunique()
     
     # Update summary.json
@@ -79,7 +116,7 @@ def quick_update():
         "wound_care_groups": int(wound_care_count),
         "mohs_groups": int(mohs_count),
         "zip_codes_covered": int(unique_zips),
-        "avg_population": 16903,  # Use previous average
+        "avg_population": 16903,
         "last_updated": datetime.now().isoformat()
     }
     
@@ -87,12 +124,24 @@ def quick_update():
         json.dump(summary_data, f, indent=2)
     print("✅ Updated summary.json")
     
-    # Create top 100 hot leads
+    # Create comprehensive hot leads data (top 100 leads)
     hot_leads_df = df.nlargest(100, 'Score')
     hot_leads_data = []
     
     for idx, row in hot_leads_df.iterrows():
-        phone = row['Clean_Practice_Phone'] or row['Clean_Owner_Phone'] or 'N/A'
+        # Get best available phones
+        practice_phone = row['Clean_Practice_Phone']
+        owner_phone = row['Clean_Owner_Phone'] 
+        primary_phone = row['Clean_Primary_Phone']
+        
+        # Priority: Practice Phone > Owner Phone > Primary Phone
+        best_phone = practice_phone or owner_phone or primary_phone or 'N/A'
+        
+        # Get practice name
+        practice_name = get_best_practice_name(row)
+        
+        # Get owner/contact info
+        owner_info = get_owner_info(row)
         
         # Priority category
         score = row['Score']
@@ -120,28 +169,39 @@ def quick_update():
         
         # Address
         address_parts = []
-        for field in ['Practice_Address_Line1', 'Practice_City', 'Practice_State', 'Practice_ZIP']:
+        for field in ['Practice_Address_Line1', 'Practice_City', 'Practice_State']:
             if pd.notna(row.get(field)):
                 address_parts.append(str(row[field]))
-        address = ' '.join(address_parts) if address_parts else 'N/A'
+        address = ', '.join(address_parts) if address_parts else 'N/A'
+        
+        # Get EIN for business info
+        ein = str(row.get('EIN', '')).strip() if pd.notna(row.get('EIN')) else None
         
         lead_data = {
             "id": len(hot_leads_data) + 1,
             "priority": priority,
             "category": category,
+            "practice_name": practice_name,
+            "owner_name": owner_info,
             "providers": int(row.get('Practice_Group_Size', 1)),
             "specialties": str(row.get('Primary_Specialty', 'N/A')),
-            "phone": phone,
+            "practice_phone": format_phone(practice_phone) if practice_phone else None,
+            "owner_phone": format_phone(owner_phone) if owner_phone else None,
+            "best_phone": format_phone(best_phone) if best_phone != 'N/A' else 'N/A',
             "address": address,
             "zip": str(row.get('Practice_ZIP', 'N/A')),
-            "population": 16903,  # Default population
-            "score": int(score)
+            "ein": ein,
+            "entity_type": str(row.get('Entity_Type', 'N/A')),
+            "is_sole_proprietor": str(row.get('Is_Sole_Proprietor', 'N/A')),
+            "population": 16903,
+            "score": int(score),
+            "npi": str(row.get('NPI', 'N/A'))
         }
         hot_leads_data.append(lead_data)
     
     with open('web/data/hot_leads.json', 'w') as f:
         json.dump(hot_leads_data, f, indent=2)
-    print(f"✅ Updated hot_leads.json with {len(hot_leads_data)} leads")
+    print(f"✅ Updated hot_leads.json with {len(hot_leads_data)} comprehensive leads")
     
     # Create regions data
     regions_data = {}
@@ -157,15 +217,22 @@ def quick_update():
     
     # Summary
     print("\n" + "="*60)
-    print("WEB DASHBOARD QUICK UPDATE SUMMARY")
+    print("COMPREHENSIVE WEB DASHBOARD UPDATE SUMMARY")
     print("="*60)
     print(f"Total Leads: {total_leads:,}")
-    print(f"Hot Leads (A/A+ Priority): {hot_leads_count:,}")
+    print(f"Hot Leads (Score ≥75): {hot_leads_count:,}")
     print(f"Podiatrist Groups: {podiatrist_count:,}")
     print(f"Wound Care Groups: {wound_care_count:,}")
     print(f"Mohs Surgery Groups: {mohs_count:,}")
     print(f"ZIP Codes Covered: {unique_zips:,}")
     print(f"Regions: {len(regions_data)}")
+    print("\nNew Lead Data Includes:")
+    print("✅ Practice Names (Legal/DBA/Organization)")
+    print("✅ Owner/Contact Information") 
+    print("✅ Multiple Phone Numbers (Practice/Owner)")
+    print("✅ EIN & Business Entity Type")
+    print("✅ NPI Numbers")
+    print("✅ Sole Proprietor Status")
     print("\n✅ Web dashboard data updated successfully!")
     print("Ready for AWS Amplify deployment!")
 
