@@ -1,0 +1,58 @@
+# Large data files - keep local only
+*.csv
+*.xlsx
+*.xls
+npidata_pfile_*
+*.zip
+
+# Except small JSON data for web app
+!web/data/*.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+
+# Data directories (keep structure but not data)
+Medicare Monthly Enrollment/
+npidata_pfile_20050523-20250713_split/
+
+# Keep important files
+!requirements.txt
+!README.md
+!analysis_summary.txt
+
+# Keep all Python scripts
+!*.py
+
+# Keep web application files
+!web/
+!web/**
+
+# Temporary files
+*.tmp
+*.temp 

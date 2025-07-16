@@ -1,0 +1,21 @@
+Rural Physician Group Analysis Summary
+==================================================
+
+Total qualifying groups found: 33,442
+Groups by size:
+  1 provider(s): 30,754 groups
+  2 provider(s): 1,812 groups
+  3 provider(s): 544 groups
+  4 provider(s): 221 groups
+  5 provider(s): 111 groups
+
+Specialty distribution:
+  Family Medicine: 20,996 groups
+  Internal Medicine: 8,869 groups
+  General Practice: 2,239 groups
+  Podiatrist: 1,486 groups
+  Wound Care - Physician Specialist: 403 groups
+  Wound Care - Nurse: 128 groups
+  Dermatology - Mohs Surgery: 79 groups
+  Wound Care - Physician: 77 groups
+  Wound Care - Physical Therapist: 18 groups

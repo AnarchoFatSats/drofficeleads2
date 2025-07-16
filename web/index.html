@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rural Physician Leads Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-hospital-user"></i> Rural Physician Leads</h1>
+                <p class="subtitle">Small, Independent Rural Physician Groups - Target Prospects</p>
+            </div>
+        </header>
+
+        <!-- Dashboard Stats -->
+        <section class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="total-leads">Loading...</div>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+            </div>
+            
+            <div class="stat-card hot">
+                <div class="stat-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="hot-leads">Loading...</div>
+                    <div class="stat-label">Hot Prospects</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-foot"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="podiatrist-groups">Loading...</div>
+                    <div class="stat-label">Podiatrist Groups</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-band-aid"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="wound-care-groups">Loading...</div>
+                    <div class="stat-label">Wound Care Groups</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters -->
+        <section class="filters">
+            <div class="filter-group">
+                <label for="priority-filter">Priority:</label>
+                <select id="priority-filter">
+                    <option value="">All Priorities</option>
+                    <option value="A+ Priority">A+ Priority</option>
+                    <option value="A Priority">A Priority</option>
+                    <option value="B Priority">B Priority</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="category-filter">Category:</label>
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="Podiatrist + Wound Care">Podiatrist + Wound Care</option>
+                    <option value="Multi-Specialty Podiatrist">Multi-Specialty Podiatrist</option>
+                    <option value="Multi-Specialty Wound Care">Multi-Specialty Wound Care</option>
+                    <option value="Mohs Surgery Specialists">Mohs Surgery Specialists</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="search-filter">Search:</label>
+                <input type="text" id="search-filter" placeholder="Search specialties, address, ZIP...">
+            </div>
+            
+            <button class="btn-reset" onclick="resetFilters()">
+                <i class="fas fa-sync-alt"></i> Reset Filters
+            </button>
+        </section>
+
+        <!-- Leads Table -->
+        <section class="leads-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list"></i> Priority Leads</h2>
+                <div class="export-buttons">
+                    <button class="btn-export" onclick="exportToCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Score</th>
+                            <th>Priority</th>
+                            <th>Category</th>
+                            <th>Providers</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>ZIP</th>
+                            <th>Population</th>
+                            <th>Specialties</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-tbody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            Data Source: NPPES + RUCA + PLACES + Medicare | 
+            Last Updated: <span id="last-updated">Loading...</span> |
+            <a href="#" onclick="downloadFullDataset()">Download Full Dataset</a>
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
