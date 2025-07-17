@@ -111,6 +111,21 @@
                 <input type="text" id="search-filter" placeholder="Search practice name, owner, specialty...">
             </div>
             
+            <div class="filter-group">
+                <label for="disposition-filter">Disposition:</label>
+                <select id="disposition-filter">
+                    <option value="">All Dispositions</option>
+                    <option value="appointment-made">Appointment Made</option>
+                    <option value="onboarded">Onboarded</option>
+                    <option value="do-not-call">Do Not Call</option>
+                    <option value="bad-phone">Bad Phone Number</option>
+                    <option value="no-answer">No Answer</option>
+                    <option value="callback">Callback Requested</option>
+                    <option value="not-interested">Not Interested</option>
+                    <option value="no-disposition">No Disposition Set</option>
+                </select>
+            </div>
+            
             <button class="btn-reset" onclick="resetFilters()">
                 <i class="fas fa-sync-alt"></i> Reset Filters
             </button>
@@ -143,12 +158,14 @@
                             <th>State</th>
                             <th>ZIP</th>
                             <th>Entity</th>
+                            <th>Disposition</th>
+                            <th>Notes</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="leads-tbody">
                         <tr>
-                            <td colspan="13" class="loading">Loading leads...</td>
+                            <td colspan="15" class="loading">Loading leads...</td>
                         </tr>
                     </tbody>
                 </table>

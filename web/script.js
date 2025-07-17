@@ -5,6 +5,7 @@ let summaryData = {};
 let allCities = new Set();
 let selectedCityFilter = '';
 let currentCityIndex = -1;
+let leadDataStorage = {}; // Store disposition and notes
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -33,6 +34,7 @@ async function loadData() {
         filteredLeads = [...allLeads];
         renderLeadsTable();
         updateLastUpdated();
+        loadLeadDataFromStorage(); // Load disposition and notes
         
         hideLoadingOverlay();
     } catch (error) {
@@ -84,6 +86,7 @@ function setupEventListeners() {
     document.getElementById('state-filter').addEventListener('change', applyFilters);
     document.getElementById('zip-filter').addEventListener('input', applyFilters);
     document.getElementById('search-filter').addEventListener('input', applyFilters);
+    document.getElementById('disposition-filter').addEventListener('change', applyFilters);
     
     // City autocomplete functionality
     const cityInput = document.getElementById('city-filter');
@@ -179,6 +182,7 @@ function applyFilters() {
     const stateFilter = document.getElementById('state-filter').value;
     const zipFilter = document.getElementById('zip-filter').value.toLowerCase();
     const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    const dispositionFilter = document.getElementById('disposition-filter').value;
 
     filteredLeads = allLeads.filter(lead => {
         // Priority filter
@@ -204,6 +208,18 @@ function applyFilters() {
         // ZIP filter
         if (zipFilter && !lead.zip.toLowerCase().includes(zipFilter)) {
             return false;
+        }
+
+        // Disposition filter
+        if (dispositionFilter) {
+            const leadData = getLeadData(lead.id);
+            if (dispositionFilter === 'no-disposition') {
+                if (leadData.disposition) {
+                    return false;
+                }
+            } else if (leadData.disposition !== dispositionFilter) {
+                return false;
+            }
         }
 
         // Search filter (searches across multiple fields)
@@ -236,6 +252,7 @@ function resetFilters() {
     document.getElementById('city-filter').value = '';
     document.getElementById('zip-filter').value = '';
     document.getElementById('search-filter').value = '';
+    document.getElementById('disposition-filter').value = '';
     
     // Reset city autocomplete
     selectedCityFilter = '';
@@ -250,11 +267,13 @@ function renderLeadsTable() {
     const tbody = document.getElementById('leads-tbody');
     
     if (filteredLeads.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" class="loading">No leads match your filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="loading">No leads match your filters.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = filteredLeads.map(lead => `
+    tbody.innerHTML = filteredLeads.map(lead => {
+        const leadData = getLeadData(lead.id);
+        return `
         <tr>
             <td>
                 <div class="score-badge ${getScoreClass(lead.score)}">
@@ -309,14 +328,93 @@ function renderLeadsTable() {
                 </div>
             </td>
             <td>
+                <select class="disposition-select" data-value="${leadData.disposition || ''}" onchange="updateDisposition('${lead.id}', this.value)">
+                    <option value="">Select...</option>
+                    <option value="appointment-made" ${leadData.disposition === 'appointment-made' ? 'selected' : ''}>Appointment Made</option>
+                    <option value="onboarded" ${leadData.disposition === 'onboarded' ? 'selected' : ''}>Onboarded</option>
+                    <option value="do-not-call" ${leadData.disposition === 'do-not-call' ? 'selected' : ''}>Do Not Call</option>
+                    <option value="bad-phone" ${leadData.disposition === 'bad-phone' ? 'selected' : ''}>Bad Phone Number</option>
+                    <option value="no-answer" ${leadData.disposition === 'no-answer' ? 'selected' : ''}>No Answer</option>
+                    <option value="callback" ${leadData.disposition === 'callback' ? 'selected' : ''}>Callback Requested</option>
+                    <option value="not-interested" ${leadData.disposition === 'not-interested' ? 'selected' : ''}>Not Interested</option>
+                </select>
+            </td>
+            <td>
+                <textarea class="notes-input" placeholder="Add notes..." 
+                    onblur="updateNotes('${lead.id}', this.value)"
+                    oninput="autoResize(this)">${leadData.notes || ''}</textarea>
+            </td>
+            <td>
                 <div class="action-buttons">
-                    <button class="btn-copy" onclick="copyLeadInfo(${lead.id})" title="Copy Lead Info">
+                    <button class="btn-copy" onclick="copyLeadInfo('${lead.id}')" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;}).join('');
+}
+
+// Get lead data from storage
+function getLeadData(leadId) {
+    return leadDataStorage[leadId] || { disposition: '', notes: '' };
+}
+
+// Update disposition for a lead
+function updateDisposition(leadId, disposition) {
+    if (!leadDataStorage[leadId]) {
+        leadDataStorage[leadId] = { disposition: '', notes: '' };
+    }
+    leadDataStorage[leadId].disposition = disposition;
+    saveLeadDataToStorage();
+    
+    // Update visual styling of the dropdown
+    const selectElement = event.target;
+    selectElement.setAttribute('data-value', disposition);
+    
+    showNotification(`Disposition updated: ${getDispositionLabel(disposition)}`);
+}
+
+// Update notes for a lead
+function updateNotes(leadId, notes) {
+    if (!leadDataStorage[leadId]) {
+        leadDataStorage[leadId] = { disposition: '', notes: '' };
+    }
+    leadDataStorage[leadId].notes = notes;
+    saveLeadDataToStorage();
+}
+
+// Get human-readable disposition label
+function getDispositionLabel(disposition) {
+    const labels = {
+        'appointment-made': 'Appointment Made',
+        'onboarded': 'Onboarded',
+        'do-not-call': 'Do Not Call',
+        'bad-phone': 'Bad Phone Number',
+        'no-answer': 'No Answer',
+        'callback': 'Callback Requested',
+        'not-interested': 'Not Interested'
+    };
+    return labels[disposition] || disposition;
+}
+
+// Auto-resize textarea
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// Save lead data to localStorage
+function saveLeadDataToStorage() {
+    localStorage.setItem('leadDataStorage', JSON.stringify(leadDataStorage));
+}
+
+// Load lead data from localStorage
+function loadLeadDataFromStorage() {
+    const stored = localStorage.getItem('leadDataStorage');
+    if (stored) {
+        leadDataStorage = JSON.parse(stored);
+    }
 }
 
 // Get CSS class for score badge
@@ -347,6 +445,8 @@ function copyLeadInfo(leadId) {
     const lead = allLeads.find(l => l.id === leadId);
     if (!lead) return;
 
+    const leadData = getLeadData(leadId);
+
     const leadInfo = `
 COMPREHENSIVE LEAD INFORMATION
 ==============================
@@ -373,6 +473,8 @@ Specialties: ${lead.specialties || 'N/A'}
 Providers: ${lead.providers}
 Score: ${lead.score}/100
 ${lead.is_sole_proprietor === 'True' ? 'Business Type: Sole Proprietor' : ''}
+Disposition: ${leadData.disposition ? getDispositionLabel(leadData.disposition) : 'N/A'}
+Notes: ${leadData.notes || 'N/A'}
     `.trim();
 
     navigator.clipboard.writeText(leadInfo).then(() => {
@@ -399,29 +501,34 @@ function exportToCSV() {
     const headers = [
         'Score', 'Priority', 'Practice Name', 'Owner/Contact', 'Practice Phone', 'Owner Phone',
         'Category', 'Providers', 'City', 'State', 'ZIP', 'Entity Type', 'NPI', 'EIN', 'Specialties',
-        'Sole Proprietor'
+        'Sole Proprietor', 'Disposition', 'Notes'
     ];
 
     const csvContent = [
         headers.join(','),
-        ...filteredLeads.map(lead => [
-            lead.score,
-            `"${lead.priority}"`,
-            `"${lead.practice_name || ''}"`,
-            `"${lead.owner_name || ''}"`,
-            `"${lead.practice_phone || ''}"`,
-            `"${lead.owner_phone || ''}"`,
-            `"${lead.category}"`,
-            lead.providers,
-            `"${lead.city || ''}"`,
-            `"${lead.state || ''}"`,
-            lead.zip,
-            `"${lead.entity_type || ''}"`,
-            lead.npi || '',
-            lead.ein || '',
-            `"${lead.specialties || ''}"`,
-            lead.is_sole_proprietor || ''
-        ].join(','))
+        ...filteredLeads.map(lead => {
+            const leadData = getLeadData(lead.id);
+            return [
+                lead.score,
+                `"${lead.priority}"`,
+                `"${lead.practice_name || ''}"`,
+                `"${lead.owner_name || ''}"`,
+                `"${lead.practice_phone || ''}"`,
+                `"${lead.owner_phone || ''}"`,
+                `"${lead.category}"`,
+                lead.providers,
+                `"${lead.city || ''}"`,
+                `"${lead.state || ''}"`,
+                lead.zip,
+                `"${lead.entity_type || ''}"`,
+                lead.npi || '',
+                lead.ein || '',
+                `"${lead.specialties || ''}"`,
+                lead.is_sole_proprietor || '',
+                `"${leadData.disposition || ''}"`,
+                `"${leadData.notes || ''}"`
+            ].join(',');
+        })
     ].join('\n');
 
     downloadCSV(csvContent, 'comprehensive_rural_physician_leads.csv');

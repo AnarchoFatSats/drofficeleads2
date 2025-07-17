@@ -658,4 +658,117 @@ body {
 .stat-card.perfect .stat-icon {
     background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
     color: #8b6914;
+}
+
+/* Disposition and Notes Styles */
+.disposition-select {
+    width: 100%;
+    min-width: 140px;
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.disposition-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.disposition-select option[value="appointment-made"] {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.disposition-select option[value="onboarded"] {
+    color: #059669;
+    font-weight: 600;
+}
+
+.disposition-select option[value="do-not-call"] {
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.disposition-select option[value="bad-phone"] {
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+.disposition-select option[value="callback"] {
+    color: #3b82f6;
+    font-weight: 500;
+}
+
+.disposition-select option[value="not-interested"] {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.notes-input {
+    width: 100%;
+    min-width: 150px;
+    min-height: 60px;
+    max-height: 120px;
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    color: #374151;
+    background: white;
+    resize: vertical;
+    transition: all 0.2s ease;
+}
+
+.notes-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.notes-input::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Disposition Badge Colors for Visual Feedback */
+.disposition-select[data-value="appointment-made"] {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border-color: #10b981;
+}
+
+.disposition-select[data-value="onboarded"] {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #14532d;
+    border-color: #059669;
+}
+
+.disposition-select[data-value="do-not-call"] {
+    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    color: #7f1d1d;
+    border-color: #dc2626;
+}
+
+.disposition-select[data-value="bad-phone"] {
+    background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%);
+    color: #78350f;
+    border-color: #f59e0b;
+}
+
+/* Table adjustments for new columns */
+.leads-table th:nth-child(13),
+.leads-table td:nth-child(13) {
+    min-width: 150px;
+}
+
+.leads-table th:nth-child(14),
+.leads-table td:nth-child(14) {
+    min-width: 180px;
 } 
