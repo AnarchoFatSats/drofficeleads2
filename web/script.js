@@ -45,10 +45,9 @@ async function loadData() {
 // Update dashboard statistics
 function updateDashboardStats() {
     document.getElementById('total-leads').textContent = summaryData.total_leads?.toLocaleString() || '0';
-    document.getElementById('hot-leads').textContent = summaryData.hot_leads?.toLocaleString() || '0';
-    document.getElementById('a-plus-leads').textContent = summaryData.a_plus_leads?.toLocaleString() || '0';
-    document.getElementById('podiatrist-groups').textContent = summaryData.podiatrist_groups?.toLocaleString() || '0';
-    document.getElementById('wound-care-groups').textContent = summaryData.wound_care_groups?.toLocaleString() || '0';
+    document.getElementById('goldmines').textContent = summaryData.goldmines?.toLocaleString() || '0';
+    document.getElementById('high-value').textContent = summaryData.high_value?.toLocaleString() || '0';
+    document.getElementById('perfect-scores').textContent = summaryData.perfect_scores?.toLocaleString() || '0';
 }
 
 // Populate filter dropdowns

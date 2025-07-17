@@ -1,12 +1,14 @@
 {
   "total_leads": 296898,
-  "hot_leads": 177,
-  "a_plus_leads": 26,
+  "goldmines": 16564,
+  "high_value": 4180,
+  "good_opportunity": 57170,
+  "overlooked_score_avg": 78.6,
+  "wound_care_specialists": 6555,
   "podiatrist_groups": 14228,
-  "wound_care_groups": 6555,
-  "mohs_groups": 1319,
-  "zip_codes_covered": 17842,
-  "avg_population": 16903,
-  "last_updated": "2025-07-15T21:38:59.110141",
-  "scoring_system": "recalibrated"
+  "family_medicine": 134125,
+  "states_covered": 211,
+  "perfect_scores": 3962,
+  "last_updated": "2025-07-16T21:05:54.281902",
+  "strategy": "overlooked_opportunities_crumbs"
 }

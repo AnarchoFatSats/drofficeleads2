@@ -632,3 +632,30 @@ body {
         flex-direction: column;
     }
 } 
+
+/* Strategy Badge */
+.strategy-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    display: inline-block;
+    font-weight: 500;
+}
+
+.strategy-badge i {
+    margin-right: 8px;
+}
+
+/* Perfect Scores Stat Card */
+.stat-card.perfect {
+    border-left: 5px solid #ffd700;
+    background: linear-gradient(135deg, #fff8dc 0%, #fffacd 100%);
+}
+
+.stat-card.perfect .stat-icon {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #8b6914;
+} 
