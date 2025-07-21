@@ -296,7 +296,7 @@ function renderLeadsTable() {
                 </span>
             </td>
             <td>
-                <div class="practice-name clickable" onclick="toggleLeadExpansion('${lead.id}')">
+                <div class="practice-name clickable" data-lead-id="${lead.id}" data-action="toggle-expand">
                     <strong>${lead.practice_name || 'N/A'}</strong>
                     <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'} expand-icon"></i>
                     ${lead.ein ? `<div class="ein-info">EIN: ${lead.ein}</div>` : ''}
@@ -339,7 +339,7 @@ function renderLeadsTable() {
                 </div>
             </td>
             <td>
-                <select class="disposition-select" data-value="${leadData.disposition || ''}" onchange="updateDisposition('${lead.id}', this.value)">
+                <select class="disposition-select" data-value="${leadData.disposition || ''}" data-lead-id="${lead.id}" data-action="update-disposition">
                     <option value="">Select...</option>
                     <option value="appointment-made" ${leadData.disposition === 'appointment-made' ? 'selected' : ''}>Appointment Made</option>
                     <option value="onboarded" ${leadData.disposition === 'onboarded' ? 'selected' : ''}>Onboarded</option>
@@ -352,15 +352,15 @@ function renderLeadsTable() {
             </td>
             <td>
                 <textarea class="notes-input" placeholder="Add notes..." 
-                    onblur="updateNotes('${lead.id}', this.value)"
+                    data-lead-id="${lead.id}" data-action="update-notes"
                     oninput="autoResize(this)">${leadData.notes || ''}</textarea>
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-copy" onclick="copyLeadInfo('${lead.id}')" title="Copy Lead Info">
+                    <button class="btn-copy" data-lead-id="${lead.id}" data-action="copy-lead" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn-expand" onclick="toggleLeadExpansion('${lead.id}')" title="View Details">
+                    <button class="btn-expand" data-lead-id="${lead.id}" data-action="toggle-expand" title="View Details">
                         <i class="fas fa-${isExpanded ? 'compress' : 'expand'}"></i>
                     </button>
                 </div>
@@ -368,6 +368,80 @@ function renderLeadsTable() {
         </tr>
         ${isExpanded ? renderLeadDetailRow(lead) : ''}
     `;}).join('');
+    
+    // Add event delegation for all buttons and interactions
+    setupTableEventListeners();
+}
+
+// Setup table event listeners with delegation
+function setupTableEventListeners() {
+    const tbody = document.getElementById('leads-tbody');
+    
+    // Remove existing listeners to prevent duplicates
+    tbody.removeEventListener('click', handleTableClick);
+    tbody.removeEventListener('change', handleTableChange);
+    tbody.removeEventListener('blur', handleTableBlur, true);
+    
+    // Add event listeners
+    tbody.addEventListener('click', handleTableClick);
+    tbody.addEventListener('change', handleTableChange);
+    tbody.addEventListener('blur', handleTableBlur, true);
+}
+
+// Handle all table clicks
+function handleTableClick(event) {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+    
+    const action = target.dataset.action;
+    const leadId = target.dataset.leadId;
+    
+    switch (action) {
+        case 'toggle-expand':
+            toggleLeadExpansion(parseInt(leadId));
+            break;
+        case 'copy-lead':
+            copyLeadInfo(parseInt(leadId));
+            break;
+        case 'export-lead':
+            exportSingleLead(parseInt(leadId));
+            break;
+        case 'open-maps':
+            const address = decodeURIComponent(target.dataset.address);
+            openGoogleMaps(address);
+            break;
+        case 'search-online':
+            const practice = decodeURIComponent(target.dataset.practice);
+            const city = decodeURIComponent(target.dataset.city);
+            const state = decodeURIComponent(target.dataset.state);
+            searchPracticeOnline(practice, city, state);
+            break;
+    }
+    
+    // Handle copy field buttons
+    if (target.classList.contains('btn-copy-field')) {
+        const text = decodeURIComponent(target.dataset.copyText);
+        const fieldName = target.dataset.fieldName;
+        copyToClipboard(text, fieldName);
+    }
+}
+
+// Handle form changes
+function handleTableChange(event) {
+    const target = event.target;
+    if (target.dataset.action === 'update-disposition') {
+        const leadId = parseInt(target.dataset.leadId);
+        updateDisposition(leadId, target.value);
+    }
+}
+
+// Handle blur events (for notes)
+function handleTableBlur(event) {
+    const target = event.target;
+    if (target.dataset.action === 'update-notes') {
+        const leadId = parseInt(target.dataset.leadId);
+        updateNotes(leadId, target.value);
+    }
 }
 
 // Toggle lead expansion
@@ -394,14 +468,12 @@ function renderLeadDetailRow(lead) {
                                 <div class="detail-item">
                                     <label>NPI:</label>
                                     <span class="detail-value npi-value">${lead.npi || 'N/A'}</span>
-                                    <button class="btn-copy-field" onclick="copyToClipboard('${lead.npi || ''}', 'NPI')" title="Copy NPI">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
+                                    ${lead.npi ? `<button class="btn-copy-field" data-copy-text="${lead.npi}" data-field-name="NPI" title="Copy NPI"><i class="fas fa-copy"></i></button>` : ''}
                                 </div>
                                 <div class="detail-item">
                                     <label>EIN:</label>
                                     <span class="detail-value">${lead.ein || 'N/A'}</span>
-                                    ${lead.ein ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.ein}', 'EIN')" title="Copy EIN"><i class="fas fa-copy"></i></button>` : ''}
+                                    ${lead.ein ? `<button class="btn-copy-field" data-copy-text="${lead.ein}" data-field-name="EIN" title="Copy EIN"><i class="fas fa-copy"></i></button>` : ''}
                                 </div>
                                 <div class="detail-item">
                                     <label>Entity Type:</label>
@@ -421,17 +493,17 @@ function renderLeadDetailRow(lead) {
                                 <div class="detail-item">
                                     <label>Practice Phone:</label>
                                     <span class="detail-value phone-value">${lead.practice_phone || 'N/A'}</span>
-                                    ${lead.practice_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_phone}', 'Practice Phone')" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
+                                    ${lead.practice_phone ? `<button class="btn-copy-field" data-copy-text="${lead.practice_phone}" data-field-name="Practice Phone" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
                                 </div>
                                 <div class="detail-item">
                                     <label>Owner Phone:</label>
                                     <span class="detail-value phone-value">${lead.owner_phone || 'N/A'}</span>
-                                    ${lead.owner_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.owner_phone}', 'Owner Phone')" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
+                                    ${lead.owner_phone ? `<button class="btn-copy-field" data-copy-text="${lead.owner_phone}" data-field-name="Owner Phone" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
                                 </div>
                                 <div class="detail-item full-width">
                                     <label>Full Address:</label>
                                     <span class="detail-value address-value">${lead.address || 'N/A'}</span>
-                                    ${lead.address ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.address}', 'Address')" title="Copy Address"><i class="fas fa-copy"></i></button>` : ''}
+                                    ${lead.address ? `<button class="btn-copy-field" data-copy-text="${encodeURIComponent(lead.address)}" data-field-name="Address" title="Copy Address"><i class="fas fa-copy"></i></button>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -490,16 +562,16 @@ function renderLeadDetailRow(lead) {
                         <div class="detail-section">
                             <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
                             <div class="quick-actions">
-                                <button class="btn-action" onclick="openGoogleMaps('${lead.address}')" title="View on Google Maps">
+                                <button class="btn-action" data-action="open-maps" data-address="${encodeURIComponent(lead.address || '')}" title="View on Google Maps">
                                     <i class="fas fa-map-marker-alt"></i> View Location
                                 </button>
-                                <button class="btn-action" onclick="searchPracticeOnline('${lead.practice_name}', '${lead.city}', '${lead.state}')" title="Search Practice Online">
+                                <button class="btn-action" data-action="search-online" data-practice="${encodeURIComponent(lead.practice_name || '')}" data-city="${encodeURIComponent(lead.city || '')}" data-state="${encodeURIComponent(lead.state || '')}" title="Search Practice Online">
                                     <i class="fas fa-search"></i> Search Online
                                 </button>
-                                <button class="btn-action" onclick="copyLeadInfo('${lead.id}')" title="Copy All Lead Info">
+                                <button class="btn-action" data-action="copy-lead" data-lead-id="${lead.id}" title="Copy All Lead Info">
                                     <i class="fas fa-copy"></i> Copy All Info
                                 </button>
-                                <button class="btn-action" onclick="exportSingleLead('${lead.id}')" title="Export Lead">
+                                <button class="btn-action" data-action="export-lead" data-lead-id="${lead.id}" title="Export Lead">
                                     <i class="fas fa-download"></i> Export Lead
                                 </button>
                             </div>
