@@ -6,6 +6,7 @@ let allCities = new Set();
 let selectedCityFilter = '';
 let currentCityIndex = -1;
 let leadDataStorage = {}; // Store disposition and notes
+let expandedLeads = new Set(); // Track which leads are expanded
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -262,6 +263,13 @@ function resetFilters() {
     renderLeadsTable();
 }
 
+// Collapse all expanded leads
+function collapseAllLeads() {
+    expandedLeads.clear();
+    renderLeadsTable();
+    showNotification('All leads collapsed');
+}
+
 // Render the leads table
 function renderLeadsTable() {
     const tbody = document.getElementById('leads-tbody');
@@ -273,8 +281,10 @@ function renderLeadsTable() {
 
     tbody.innerHTML = filteredLeads.map(lead => {
         const leadData = getLeadData(lead.id);
+        const isExpanded = expandedLeads.has(lead.id);
+        
         return `
-        <tr>
+        <tr class="lead-row ${isExpanded ? 'expanded' : ''}" data-lead-id="${lead.id}">
             <td>
                 <div class="score-badge ${getScoreClass(lead.score)}">
                     ${lead.score}
@@ -286,8 +296,9 @@ function renderLeadsTable() {
                 </span>
             </td>
             <td>
-                <div class="practice-name">
+                <div class="practice-name clickable" onclick="toggleLeadExpansion('${lead.id}')">
                     <strong>${lead.practice_name || 'N/A'}</strong>
+                    <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'} expand-icon"></i>
                     ${lead.ein ? `<div class="ein-info">EIN: ${lead.ein}</div>` : ''}
                 </div>
             </td>
@@ -349,10 +360,232 @@ function renderLeadsTable() {
                     <button class="btn-copy" onclick="copyLeadInfo('${lead.id}')" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
+                    <button class="btn-expand" onclick="toggleLeadExpansion('${lead.id}')" title="View Details">
+                        <i class="fas fa-${isExpanded ? 'compress' : 'expand'}"></i>
+                    </button>
                 </div>
             </td>
         </tr>
+        ${isExpanded ? renderLeadDetailRow(lead) : ''}
     `;}).join('');
+}
+
+// Toggle lead expansion
+function toggleLeadExpansion(leadId) {
+    if (expandedLeads.has(leadId)) {
+        expandedLeads.delete(leadId);
+    } else {
+        expandedLeads.add(leadId);
+    }
+    renderLeadsTable(); // Re-render to show/hide details
+}
+
+// Render detailed lead information row
+function renderLeadDetailRow(lead) {
+    return `
+        <tr class="lead-detail-row" data-lead-id="${lead.id}">
+            <td colspan="15">
+                <div class="lead-detail-content">
+                    <div class="detail-sections">
+                        <!-- Provider Identity Section -->
+                        <div class="detail-section">
+                            <h4><i class="fas fa-id-card"></i> Provider Identity</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>NPI:</label>
+                                    <span class="detail-value npi-value">${lead.npi || 'N/A'}</span>
+                                    <button class="btn-copy-field" onclick="copyToClipboard('${lead.npi || ''}', 'NPI')" title="Copy NPI">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="detail-item">
+                                    <label>EIN:</label>
+                                    <span class="detail-value">${lead.ein || 'N/A'}</span>
+                                    ${lead.ein ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.ein}', 'EIN')" title="Copy EIN"><i class="fas fa-copy"></i></button>` : ''}
+                                </div>
+                                <div class="detail-item">
+                                    <label>Entity Type:</label>
+                                    <span class="detail-value">${lead.entity_type || 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Sole Proprietor:</label>
+                                    <span class="detail-value">${lead.is_sole_proprietor === 'True' ? 'Yes' : 'No'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="detail-section">
+                            <h4><i class="fas fa-phone"></i> Contact Information</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Practice Phone:</label>
+                                    <span class="detail-value phone-value">${lead.practice_phone || 'N/A'}</span>
+                                    ${lead.practice_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_phone}', 'Practice Phone')" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
+                                </div>
+                                <div class="detail-item">
+                                    <label>Owner Phone:</label>
+                                    <span class="detail-value phone-value">${lead.owner_phone || 'N/A'}</span>
+                                    ${lead.owner_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.owner_phone}', 'Owner Phone')" title="Copy Phone"><i class="fas fa-copy"></i></button>` : ''}
+                                </div>
+                                <div class="detail-item full-width">
+                                    <label>Full Address:</label>
+                                    <span class="detail-value address-value">${lead.address || 'N/A'}</span>
+                                    ${lead.address ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.address}', 'Address')" title="Copy Address"><i class="fas fa-copy"></i></button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Business Details Section -->
+                        <div class="detail-section">
+                            <h4><i class="fas fa-building"></i> Business Details</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Practice Name:</label>
+                                    <span class="detail-value">${lead.practice_name || 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Owner/Contact:</label>
+                                    <span class="detail-value">${lead.owner_name || 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Provider Count:</label>
+                                    <span class="detail-value">${lead.providers} provider${lead.providers > 1 ? 's' : ''}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Primary Category:</label>
+                                    <span class="detail-value">${lead.category}</span>
+                                </div>
+                                <div class="detail-item full-width">
+                                    <label>All Specialties:</label>
+                                    <span class="detail-value specialties-value">${lead.specialties || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scoring & Priority Section -->
+                        <div class="detail-section">
+                            <h4><i class="fas fa-star"></i> Scoring & Priority</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Lead Score:</label>
+                                    <span class="detail-value score-large ${getScoreClass(lead.score)}">${lead.score}/100</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Priority Level:</label>
+                                    <span class="detail-value priority-large ${getPriorityClass(lead.priority)}">${lead.priority}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Geographic Region:</label>
+                                    <span class="detail-value">${lead.city}, ${lead.state} ${lead.zip}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Lead ID:</label>
+                                    <span class="detail-value">#${lead.id}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions Section -->
+                        <div class="detail-section">
+                            <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
+                            <div class="quick-actions">
+                                <button class="btn-action" onclick="openGoogleMaps('${lead.address}')" title="View on Google Maps">
+                                    <i class="fas fa-map-marker-alt"></i> View Location
+                                </button>
+                                <button class="btn-action" onclick="searchPracticeOnline('${lead.practice_name}', '${lead.city}', '${lead.state}')" title="Search Practice Online">
+                                    <i class="fas fa-search"></i> Search Online
+                                </button>
+                                <button class="btn-action" onclick="copyLeadInfo('${lead.id}')" title="Copy All Lead Info">
+                                    <i class="fas fa-copy"></i> Copy All Info
+                                </button>
+                                <button class="btn-action" onclick="exportSingleLead('${lead.id}')" title="Export Lead">
+                                    <i class="fas fa-download"></i> Export Lead
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+// Copy individual field to clipboard
+function copyToClipboard(text, fieldName) {
+    if (!text || text === 'N/A') {
+        showNotification(`No ${fieldName} to copy`);
+        return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification(`${fieldName} copied: ${text}`);
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification(`${fieldName} copied: ${text}`);
+    });
+}
+
+// Open Google Maps for address
+function openGoogleMaps(address) {
+    if (!address || address === 'N/A') {
+        showNotification('No address available');
+        return;
+    }
+    const encodedAddress = encodeURIComponent(address);
+    window.open(`https://maps.google.com/?q=${encodedAddress}`, '_blank');
+}
+
+// Search practice online
+function searchPracticeOnline(practiceName, city, state) {
+    if (!practiceName || practiceName === 'N/A') {
+        showNotification('No practice name available');
+        return;
+    }
+    const searchQuery = `"${practiceName}" ${city} ${state}`;
+    const encodedQuery = encodeURIComponent(searchQuery);
+    window.open(`https://www.google.com/search?q=${encodedQuery}`, '_blank');
+}
+
+// Export single lead
+function exportSingleLead(leadId) {
+    const lead = allLeads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    const leadData = getLeadData(leadId);
+    
+    const csvContent = [
+        ['Field', 'Value'],
+        ['Lead ID', lead.id],
+        ['Score', lead.score],
+        ['Priority', lead.priority],
+        ['Practice Name', lead.practice_name || ''],
+        ['Owner/Contact', lead.owner_name || ''],
+        ['NPI', lead.npi || ''],
+        ['EIN', lead.ein || ''],
+        ['Entity Type', lead.entity_type || ''],
+        ['Practice Phone', lead.practice_phone || ''],
+        ['Owner Phone', lead.owner_phone || ''],
+        ['Category', lead.category],
+        ['Specialties', lead.specialties || ''],
+        ['Providers', lead.providers],
+        ['Address', lead.address || ''],
+        ['City', lead.city || ''],
+        ['State', lead.state || ''],
+        ['ZIP', lead.zip],
+        ['Sole Proprietor', lead.is_sole_proprietor || ''],
+        ['Disposition', leadData.disposition || ''],
+        ['Notes', leadData.notes || '']
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    downloadCSV(csvContent, `lead_${leadId}_${lead.practice_name || 'unknown'}.csv`);
+    showNotification(`Lead #${leadId} exported successfully`);
 }
 
 // Get lead data from storage
