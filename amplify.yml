@@ -7,17 +7,14 @@ frontend:
     build:
       commands:
         - echo "Building CRM static files"
-        # Copy CRM dashboard files
-        - cp crm_enhanced_dashboard_v2.html index.html
+        # Copy production landing page that explains how to access local CRM
+        - cp production_crm_landing.html index.html
         - cp manifest.json .
-        # Create a simple redirect from root to CRM dashboard
-        - echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/index.html"></head><body>Redirecting to CRM...</body></html>' > redirect.html
         - ls -la
   artifacts:
     baseDirectory: /
     files:
       - 'index.html'
       - 'manifest.json'
-      - 'redirect.html'
   cache:
     paths: [] # Force fresh deployment of CRM files
