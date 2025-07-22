@@ -56,3 +56,9 @@ npidata_pfile_20050523-20250713_split/
 # Temporary files
 *.tmp
 *.temp 
+# CRM Environment and Virtual Environment
+.env
+crm_venv/
+logs/
+uploads/
+temp/

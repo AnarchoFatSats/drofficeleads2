@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cura Genesis CRM - Advanced Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <style>
+        :root {
+            --primary: #1976d2;
+            --primary-light: #42a5f5;
+            --secondary: #2196f3;
+            --accent: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --success: #4caf50;
+            --background: #f5f7fa;
+            --surface: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7b8794;
+            --border: #e1e8ed;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-hover: 0 4px 16px rgba(0,0,0,0.15);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-left: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Login Screen */
+        .login-container {
+            display: none;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container.active {
+            display: flex;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 3rem;
+            box-shadow: var(--shadow-hover);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: var(--background);
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-logout {
+            background: var(--error);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            overflow-x: auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .nav-tab.active,
+        .nav-tab:hover {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Dashboard Overview */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(45deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .leaderboard-item:hover {
+            background: #f8f9fa;
+        }
+
+        .leaderboard-rank {
+            font-size: 1.5rem;
+            font-weight: bold;
+            width: 40px;
+            color: var(--primary);
+        }
+
+        .leaderboard-info {
+            flex: 1;
+            margin-left: 1rem;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .leaderboard-role {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .leaderboard-points {
+            text-align: right;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .leaderboard-level {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Leads Table */
+        .leads-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .leads-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .leads-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .leads-filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        .leads-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leads-table th,
+        .leads-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leads-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .priority-a-plus {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .priority-a {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .priority-b-plus {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .priority-b {
+            background: #fffde7;
+            color: #f57f17;
+        }
+
+        .priority-c {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-new {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-contacted {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-qualified {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .phone-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .phone-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: var(--border);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 1rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-stats {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .nav-tabs {
+                padding: 0 1rem;
+                justify-content: space-around;
+            }
+
+            .nav-tab {
+                padding: 0.75rem 1rem;
+                font-size: 0.75rem;
+            }
+
+            .leads-table {
+                font-size: 0.875rem;
+            }
+
+            .leads-table th,
+            .leads-table td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .login-card {
+                padding: 2rem;
+            }
+
+            .leaderboard-item {
+                padding: 0.75rem 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .leads-table {
+                display: none;
+            }
+
+            .leads-cards {
+                display: block;
+            }
+
+            .lead-card {
+                background: white;
+                border-radius: var(--radius);
+                padding: 1rem;
+                margin-bottom: 1rem;
+                box-shadow: var(--shadow);
+            }
+
+            .lead-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 0.75rem;
+            }
+
+            .lead-card-name {
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+
+            .lead-card-info {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            .lead-card-label {
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+            }
+
+            .lead-card-value {
+                font-weight: 500;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--accent);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            transform: translateX(100%);
+            transition: var(--transition);
+            z-index: 10001;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        /* PWA Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius);
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-hover);
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        @media (min-width: 769px) {
+            .install-prompt {
+                left: auto;
+                right: 2rem;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Login Screen -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card fade-in">
+            <div class="login-logo">🏥</div>
+            <h1 class="login-title">Cura Genesis CRM</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-full">
+                    <span id="loginButtonText">🔑 Sign In</span>
+                </button>
+            </form>
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
+                <p><strong>Demo Accounts:</strong></p>
+                <p>👑 Admin: admin / admin123</p>
+                <p>👔 Manager: manager / admin123</p>
+                <p>👤 Agent: agent1 / admin123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span>🏥</span>
+                    <span>Cura Genesis CRM</span>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalLeads">--</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="assignedLeads">--</div>
+                        <div class="stat-label">Assigned</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userPoints">--</div>
+                        <div class="stat-label">My Points</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userLevel">--</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                </div>
+                <div class="user-menu">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User Name</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                    <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">📊 Overview</button>
+            <button class="nav-tab" onclick="showTab('leads')">📋 Leads</button>
+            <button class="nav-tab" onclick="showTab('activities')">📝 Activities</button>
+            <button class="nav-tab" onclick="showTab('gamification')">🎮 Gamification</button>
+            <button class="nav-tab" onclick="showTab('analytics')">📈 Analytics</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview">
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏆</span>
+                                Leaderboard
+                            </h3>
+                        </div>
+                        <div id="leaderboardContainer">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading leaderboard...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📊</span>
+                                Quick Stats
+                            </h3>
+                        </div>
+                        <div id="quickStats">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading statistics...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🔥</span>
+                                Hot Leads
+                            </h3>
+                        </div>
+                        <div id="hotLeads">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading hot leads...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leads Tab -->
+            <div class="tab-content" id="leads">
+                <div class="leads-container">
+                    <div class="leads-header">
+                        <h2 class="leads-title">📋 Leads Management</h2>
+                        <div class="leads-filters">
+                            <select class="filter-select" id="statusFilter" onchange="filterLeads()">
+                                <option value="">All Status</option>
+                                <option value="new">New</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="qualified">Qualified</option>
+                                <option value="demo_scheduled">Demo Scheduled</option>
+                                <option value="closed_won">Closed Won</option>
+                            </select>
+                            <select class="filter-select" id="priorityFilter" onchange="filterLeads()">
+                                <option value="">All Priorities</option>
+                                <option value="A+">A+ Priority</option>
+                                <option value="A">A Priority</option>
+                                <option value="B+">B+ Priority</option>
+                                <option value="B">B Priority</option>
+                                <option value="C">C Priority</option>
+                            </select>
+                            <button class="btn" onclick="refreshLeads()">🔄 Refresh</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Desktop Table -->
+                    <div class="table-container">
+                        <table class="leads-table" id="leadsTable">
+                            <thead>
+                                <tr>
+                                    <th>Practice</th>
+                                    <th>Owner</th>
+                                    <th>Phone</th>
+                                    <th>Location</th>
+                                    <th>Score</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        Loading leads...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="leads-cards" id="leadsCards" style="display: none;">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading leads...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Tab -->
+            <div class="tab-content" id="activities">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">📝</span>
+                            Recent Activities
+                        </h3>
+                        <button class="btn" onclick="refreshActivities()">🔄 Refresh</button>
+                    </div>
+                    <div id="activitiesContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading activities...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gamification Tab -->
+            <div class="tab-content" id="gamification">
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">👤</span>
+                                My Performance
+                            </h3>
+                        </div>
+                        <div id="myPerformance">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading performance data...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏆</span>
+                                Full Leaderboard
+                            </h3>
+                        </div>
+                        <div id="fullLeaderboard">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading leaderboard...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏅</span>
+                                Achievements
+                            </h3>
+                        </div>
+                        <div id="achievements">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading achievements...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-content" id="analytics">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">📈</span>
+                            Analytics Dashboard
+                        </h3>
+                        <button class="btn" onclick="refreshAnalytics()">🔄 Refresh</button>
+                    </div>
+                    <div id="analyticsContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading analytics...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toast"></div>
+
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <div>
+            <strong>📱 Install CRM App</strong>
+            <br>Get the full experience with offline access!
+        </div>
+        <div>
+            <button class="btn" onclick="installPWA()" style="margin-right: 0.5rem;">Install</button>
+            <button class="btn-icon" onclick="dismissInstall()">✕</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = null;
+        let currentUser = null;
+        let allLeads = [];
+        let currentTab = 'overview';
+        let deferredPrompt = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+            }, 1000);
+
+            // Check for saved token
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                authToken = savedToken;
+                try {
+                    await loadUserData();
+                    showDashboard();
+                } catch (error) {
+                    console.error('Token validation failed:', error);
+                    showLogin();
+                }
+            } else {
+                showLogin();
+            }
+
+            // PWA Install prompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallPrompt();
+            });
+        }
+
+        function showLogin() {
+            document.getElementById('loginContainer').classList.add('active');
+            document.getElementById('dashboard').classList.remove('active');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginContainer').classList.remove('active');
+            document.getElementById('dashboard').classList.add('active');
+            loadDashboardData();
+        }
+
+        // Authentication
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButtonText');
+            
+            button.textContent = '🔄 Signing in...';
+            
+            try {
+                const response = await fetch('http://localhost:8001/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    showToast('Welcome back, ' + currentUser.full_name + '! 🎉', 'success');
+                    showDashboard();
+                } else {
+                    const error = await response.json();
+                    showToast('Login failed: ' + (error.detail || 'Invalid credentials'), 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            } finally {
+                button.textContent = '🔑 Sign In';
+            }
+        });
+
+        async function loadUserData() {
+            const response = await fetch('http://localhost:8001/auth/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
+            });
+
+            if (response.ok) {
+                currentUser = await response.json();
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserInfo();
+                return currentUser;
+            } else {
+                throw new Error('Failed to load user data');
+            }
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.full_name;
+                document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+                document.getElementById('userPoints').textContent = currentUser.total_points;
+                document.getElementById('userLevel').textContent = currentUser.level;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            authToken = null;
+            currentUser = null;
+            showLogin();
+            showToast('Logged out successfully', 'success');
+        }
+
+        // Dashboard data loading
+        async function loadDashboardData() {
+            updateUserInfo();
+            
+            // Load all data in parallel
+            await Promise.all([
+                loadLeaderboard(),
+                loadLeads(),
+                loadAnalytics(),
+                loadMyStats()
+            ]);
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('http://localhost:8001/api/v1/gamification/leaderboard', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const leaderboard = await response.json();
+                    renderLeaderboard(leaderboard);
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            }
+        }
+
+        function renderLeaderboard(leaderboard) {
+            const container = document.getElementById('leaderboardContainer');
+            const fullContainer = document.getElementById('fullLeaderboard');
+            
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No data available</div>';
+                return;
+            }
+
+            const topLeaderboard = leaderboard.slice(0, 5);
+            const topHTML = `
+                <div class="leaderboard">
+                    <div class="leaderboard-header">🏆 Top Performers</div>
+                    ${topLeaderboard.map(user => `
+                        <div class="leaderboard-item ${user.user_id === currentUser?.id ? 'pulse' : ''}">
+                            <div class="leaderboard-rank">${user.rank}</div>
+                            <div class="leaderboard-info">
+                                <div class="leaderboard-name">${user.full_name}</div>
+                                <div class="leaderboard-role">@${user.username}</div>
+                            </div>
+                            <div class="leaderboard-points">
+                                <div>${user.total_points.toLocaleString()} pts</div>
+                                <div class="leaderboard-level">Level ${user.level}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const fullHTML = `
+                <div class="leaderboard">
+                    <div class="leaderboard-header">🏆 Full Rankings</div>
+                    ${leaderboard.map(user => `
+                        <div class="leaderboard-item ${user.user_id === currentUser?.id ? 'pulse' : ''}">
+                            <div class="leaderboard-rank">${user.rank}</div>
+                            <div class="leaderboard-info">
+                                <div class="leaderboard-name">${user.full_name}</div>
+                                <div class="leaderboard-role">@${user.username}</div>
+                            </div>
+                            <div class="leaderboard-points">
+                                <div>${user.total_points.toLocaleString()} pts</div>
+                                <div class="leaderboard-level">Level ${user.level}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.innerHTML = topHTML;
+            if (fullContainer) fullContainer.innerHTML = fullHTML;
+        }
+
+        async function loadLeads() {
+            try {
+                const response = await fetch('http://localhost:8001/api/v1/leads?limit=100', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    allLeads = await response.json();
+                    renderLeads(allLeads);
+                    updateLeadStats();
+                }
+            } catch (error) {
+                console.error('Error loading leads:', error);
+            }
+        }
+
+        function renderLeads(leads) {
+            const tableBody = document.getElementById('leadsTableBody');
+            const cardsContainer = document.getElementById('leadsCards');
+            
+            if (leads.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No leads found</td></tr>';
+                cardsContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No leads found</div>';
+                return;
+            }
+
+            // Desktop table
+            const tableHTML = leads.map(lead => `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${lead.practice_name || 'N/A'}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">NPI: ${lead.npi || 'N/A'}</div>
+                    </td>
+                    <td>${lead.owner_name || 'N/A'}</td>
+                    <td>
+                        ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                    </td>
+                    <td>${lead.city || ''}, ${lead.state || ''}</td>
+                    <td><strong>${lead.score}</strong></td>
+                    <td><span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority}</span></td>
+                    <td><span class="status-badge status-${lead.status}">${lead.status.replace('_', ' ')}</span></td>
+                    <td>
+                        <div class="quick-actions">
+                            <button class="btn-icon" onclick="callLead(${lead.id})" title="Call">📞</button>
+                            <button class="btn-icon" onclick="emailLead(${lead.id})" title="Email">📧</button>
+                            <button class="btn-icon" onclick="viewLead(${lead.id})" title="View">👁️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Mobile cards
+            const cardsHTML = leads.map(lead => `
+                <div class="lead-card">
+                    <div class="lead-card-header">
+                        <div class="lead-card-name">${lead.practice_name || 'N/A'}</div>
+                        <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority}</span>
+                    </div>
+                    <div class="lead-card-info">
+                        <div>
+                            <div class="lead-card-label">Owner</div>
+                            <div class="lead-card-value">${lead.owner_name || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Phone</div>
+                            <div class="lead-card-value">
+                                ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Location</div>
+                            <div class="lead-card-value">${lead.city || ''}, ${lead.state || ''}</div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Score</div>
+                            <div class="lead-card-value"><strong>${lead.score}</strong></div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Status</div>
+                            <div class="lead-card-value">
+                                <span class="status-badge status-${lead.status}">${lead.status.replace('_', ' ')}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Actions</div>
+                            <div class="lead-card-value">
+                                <div class="quick-actions">
+                                    <button class="btn-icon" onclick="callLead(${lead.id})" title="Call">📞</button>
+                                    <button class="btn-icon" onclick="emailLead(${lead.id})" title="Email">📧</button>
+                                    <button class="btn-icon" onclick="viewLead(${lead.id})" title="View">👁️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            tableBody.innerHTML = tableHTML;
+            cardsContainer.innerHTML = cardsHTML;
+        }
+
+        function updateLeadStats() {
+            const totalLeads = allLeads.length;
+            const assignedLeads = allLeads.filter(lead => lead.assigned_user_id === currentUser?.id).length;
+            
+            document.getElementById('totalLeads').textContent = totalLeads;
+            document.getElementById('assignedLeads').textContent = assignedLeads;
+        }
+
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('http://localhost:8001/api/v1/analytics/dashboard', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const analytics = await response.json();
+                    renderAnalytics(analytics);
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        function renderAnalytics(analytics) {
+            const container = document.getElementById('analyticsContainer');
+            const quickStats = document.getElementById('quickStats');
+            
+            const statusHTML = Object.entries(analytics.leads_by_status)
+                .filter(([status, count]) => count > 0)
+                .map(([status, count]) => `
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${status.replace('_', ' ').toUpperCase()}</span>
+                        <strong>${count}</strong>
+                    </div>
+                `).join('');
+
+            quickStats.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Conversion Rate</span>
+                        <strong style="color: var(--accent);">${analytics.conversion_rate}%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Total Leads</span>
+                        <strong>${analytics.total_leads}</strong>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">LEADS BY STATUS</h4>
+                    ${statusHTML}
+                </div>
+            `;
+
+            container.innerHTML = `
+                <div class="overview-grid">
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;">📊 Lead Distribution</h4>
+                        ${statusHTML || '<div style="color: var(--text-secondary);">No data available</div>'}
+                    </div>
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;">📈 Performance Metrics</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span>Conversion Rate</span>
+                            <strong style="color: var(--accent);">${analytics.conversion_rate}%</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Total Leads</span>
+                            <strong>${analytics.total_leads}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadMyStats() {
+            try {
+                const response = await fetch('http://localhost:8001/api/v1/gamification/my-stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const stats = await response.json();
+                    renderMyStats(stats);
+                }
+            } catch (error) {
+                console.error('Error loading my stats:', error);
+            }
+        }
+
+        function renderMyStats(stats) {
+            const container = document.getElementById('myPerformance');
+            const achievementsContainer = document.getElementById('achievements');
+            
+            container.innerHTML = `
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">#${stats.rank}</div>
+                    <div style="color: var(--text-secondary);">Your Rank</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">${stats.total_points}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Points</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--warning);">Level ${stats.level}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">Current Level</div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Recent Activities (7 days)</span>
+                        <strong>${stats.recent_activities}</strong>
+                    </div>
+                </div>
+            `;
+
+            achievementsContainer.innerHTML = `
+                <div>
+                    <h4 style="margin-bottom: 1rem;">🏅 Your Badges</h4>
+                    ${stats.badges && stats.badges.length > 0 ? 
+                        stats.badges.map(badge => `
+                            <div style="display: flex; align-items: center; padding: 0.5rem; background: var(--background); border-radius: var(--radius); margin-bottom: 0.5rem;">
+                                <span style="margin-right: 0.5rem;">🏅</span>
+                                <span>${badge}</span>
+                            </div>
+                        `).join('') : 
+                        '<div style="color: var(--text-secondary);">No badges earned yet. Keep working!</div>'
+                    }
+                </div>
+            `;
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Show tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+
+            currentTab = tabName;
+
+            // Load tab-specific data if needed
+            if (tabName === 'activities' && document.getElementById('activitiesContainer').innerHTML.includes('Loading')) {
+                loadActivities();
+            }
+        }
+
+        async function loadActivities() {
+            try {
+                const response = await fetch('http://localhost:8001/api/v1/activities?limit=20', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const activities = await response.json();
+                    renderActivities(activities);
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                document.getElementById('activitiesContainer').innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--error);">Failed to load activities</div>';
+            }
+        }
+
+        function renderActivities(activities) {
+            const container = document.getElementById('activitiesContainer');
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No activities found</div>';
+                return;
+            }
+
+            const activitiesHTML = activities.map(activity => `
+                <div style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border);">
+                    <div style="margin-right: 1rem; font-size: 1.5rem;">
+                        ${activity.activity_type === 'call' ? '📞' : 
+                          activity.activity_type === 'email' ? '📧' : 
+                          activity.activity_type === 'meeting' ? '🤝' : 
+                          activity.activity_type === 'demo' ? '🖥️' : '📝'}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${activity.subject}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            ${activity.description || 'No description'}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            ${new Date(activity.created_at).toLocaleString()}
+                        </div>
+                    </div>
+                    ${activity.outcome ? `
+                        <div style="text-align: right;">
+                            <span style="padding: 0.25rem 0.5rem; background: var(--accent); color: white; border-radius: 4px; font-size: 0.75rem;">
+                                ${activity.outcome}
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            container.innerHTML = activitiesHTML;
+        }
+
+        // Filter functions
+        function filterLeads() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            
+            let filteredLeads = allLeads;
+            
+            if (statusFilter) {
+                filteredLeads = filteredLeads.filter(lead => lead.status === statusFilter);
+            }
+            
+            if (priorityFilter) {
+                filteredLeads = filteredLeads.filter(lead => lead.priority === priorityFilter);
+            }
+            
+            renderLeads(filteredLeads);
+        }
+
+        // Refresh functions
+        async function refreshLeads() {
+            showToast('Refreshing leads...', 'success');
+            await loadLeads();
+        }
+
+        async function refreshActivities() {
+            showToast('Refreshing activities...', 'success');
+            await loadActivities();
+        }
+
+        async function refreshAnalytics() {
+            showToast('Refreshing analytics...', 'success');
+            await loadAnalytics();
+        }
+
+        // Lead actions
+        function callLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead && lead.practice_phone) {
+                window.open(`tel:${lead.practice_phone}`);
+                showToast(`Calling ${lead.practice_name}...`, 'success');
+            } else {
+                showToast('No phone number available', 'error');
+            }
+        }
+
+        function emailLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            showToast('Email functionality coming soon!', 'success');
+        }
+
+        function viewLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead) {
+                alert(`Lead Details:\n\nPractice: ${lead.practice_name}\nOwner: ${lead.owner_name}\nPhone: ${lead.practice_phone}\nLocation: ${lead.city}, ${lead.state}\nScore: ${lead.score}\nPriority: ${lead.priority}`);
+            }
+        }
+
+        // Utility functions
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // PWA functionality
+        function showInstallPrompt() {
+            if (deferredPrompt && !localStorage.getItem('installPromptDismissed')) {
+                document.getElementById('installPrompt').classList.add('show');
+            }
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    showToast('App installed successfully!', 'success');
+                }
+                
+                deferredPrompt = null;
+                document.getElementById('installPrompt').classList.remove('show');
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.remove('show');
+            localStorage.setItem('installPromptDismissed', 'true');
+        }
+
+        // Auto-refresh data every 5 minutes
+        setInterval(() => {
+            if (authToken && currentTab === 'overview') {
+                loadDashboardData();
+            }
+        }, 5 * 60 * 1000);
+
+        // Handle window resize for responsive design
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 480) {
+                document.getElementById('leadsTable').style.display = 'none';
+                document.getElementById('leadsCards').style.display = 'block';
+            } else {
+                document.getElementById('leadsTable').style.display = 'table';
+                document.getElementById('leadsCards').style.display = 'none';
+            }
+        });
+
+        // Initialize responsive design
+        if (window.innerWidth <= 480) {
+            document.getElementById('leadsTable').style.display = 'none';
+            document.getElementById('leadsCards').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

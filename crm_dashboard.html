@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cura Genesis CRM Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo h1 {
+            color: #1976d2;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1976d2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .welcome-card h2 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .leads-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #1976d2 30%, #42a5f5 90%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+        }
+
+        .leads-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .lead-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #4caf50;
+            transition: all 0.3s ease;
+        }
+
+        .lead-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        .lead-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .lead-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .lead-score {
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .lead-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .phone-link {
+            color: #1976d2;
+            text-decoration: none;
+        }
+
+        .phone-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .priority-a-plus {
+            border-left-color: #4caf50;
+        }
+
+        .priority-a {
+            border-left-color: #8bc34a;
+        }
+
+        .priority-b-plus {
+            border-left-color: #ff9800;
+        }
+
+        .priority-b {
+            border-left-color: #ffc107;
+        }
+
+        .priority-c {
+            border-left-color: #757575;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .stats {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div style="font-size: 2rem;">🏥</div>
+            <h1>Cura Genesis CRM</h1>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="total-leads">--</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="a-plus-leads">--</div>
+                <div class="stat-label">A+ Priority</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">🚀</div>
+                <div class="stat-label">Status: Active</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2>🎉 Welcome to Your CRM System!</h2>
+            <p>Your sophisticated lead scoring and Medicare allograft targeting system is now integrated with a modern CRM platform. All your existing lead intelligence has been preserved and enhanced with new features.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🎯 <span>Lead Scoring Preserved</span></h3>
+                <p>Your Medicare allograft scoring, rural verification, and overlooked opportunity algorithms are all intact and working.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎮 <span>Gamification Active</span></h3>
+                <p>Points for calls, emails, demos, and sales. Real-time leaderboards and achievements to motivate your team.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔄 <span>7-Day Recycling</span></h3>
+                <p>Leads automatically recycle after 7 business days of no conversion to maximize opportunities.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⚡ <span>Real-time Updates</span></h3>
+                <p>Live notifications for new leads, assignments, and team activities. WebSocket-powered instant updates.</p>
+            </div>
+        </div>
+
+        <div class="leads-section">
+            <div class="section-header">
+                <h2>🔥 High-Priority Leads</h2>
+                <button class="btn" onclick="refreshLeads()">Refresh Leads</button>
+            </div>
+            
+            <div id="leads-container">
+                <div class="loading">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+                    <p>Loading your high-priority leads...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allLeads = [];
+
+        // Load leads when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLeads();
+        });
+
+        async function loadLeads() {
+            try {
+                console.log('Loading leads from API...');
+                const response = await fetch('http://localhost:8001/api/v1/leads');
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+                
+                if (data.leads) {
+                    allLeads = data.leads;
+                    displayLeads(allLeads);
+                    updateStats(data.total, allLeads);
+                } else {
+                    throw new Error('No leads data received');
+                }
+            } catch (error) {
+                console.error('Error loading leads:', error);
+                document.getElementById('leads-container').innerHTML = `
+                    <div class="error">
+                        <strong>Error loading leads:</strong> ${error.message}
+                        <br><br>
+                        <button class="btn" onclick="loadLeads()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function displayLeads(leads) {
+            const container = document.getElementById('leads-container');
+            
+            if (!leads || leads.length === 0) {
+                container.innerHTML = `
+                    <div class="loading">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                        <p>No leads found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const leadsHTML = leads.map(lead => `
+                <div class="lead-card priority-${getPriorityClass(lead.priority)}">
+                    <div class="lead-header">
+                        <div class="lead-name">${lead.practice_name || 'Practice Name Not Available'}</div>
+                        <div class="lead-score">Score: ${lead.score}</div>
+                    </div>
+                    <div class="lead-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Owner</div>
+                            <div class="detail-value">${lead.owner_name || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Practice Phone</div>
+                            <div class="detail-value">
+                                ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Owner Phone</div>
+                            <div class="detail-value">
+                                ${lead.owner_phone ? `<a href="tel:${lead.owner_phone}" class="phone-link">${lead.owner_phone}</a>` : 'N/A'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Specialty</div>
+                            <div class="detail-value">${lead.specialties || lead.category || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Location</div>
+                            <div class="detail-value">${lead.city || ''}, ${lead.state || ''} ${lead.zip || ''}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Priority</div>
+                            <div class="detail-value">${lead.priority}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">NPI</div>
+                            <div class="detail-value">${lead.npi || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Entity Type</div>
+                            <div class="detail-value">${lead.entity_type || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="leads-grid">${leadsHTML}</div>`;
+        }
+
+        function getPriorityClass(priority) {
+            switch (priority) {
+                case 'A+ Priority': return 'a-plus';
+                case 'A Priority': return 'a';
+                case 'B+ Priority': return 'b-plus';
+                case 'B Priority': return 'b';
+                case 'C Priority': return 'c';
+                default: return 'c';
+            }
+        }
+
+        function updateStats(total, displayedLeads) {
+            document.getElementById('total-leads').textContent = total;
+            const aPlusCount = displayedLeads.filter(lead => lead.priority === 'A+ Priority').length;
+            document.getElementById('a-plus-leads').textContent = aPlusCount;
+        }
+
+        function refreshLeads() {
+            document.getElementById('leads-container').innerHTML = `
+                <div class="loading">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔄</div>
+                    <p>Refreshing leads...</p>
+                </div>
+            `;
+            loadLeads();
+        }
+    </script>
+</body>
+</html> 
