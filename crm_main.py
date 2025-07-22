@@ -50,6 +50,7 @@ try:
     from rural_verified_scoring import RuralVerifiedScoring
     from overlooked_opportunity_scorer import OverlookedOpportunityScorer
     from recalibrated_scoring import RecalibratedScoring
+    from crm_lead_distribution import LeadDistributionService, run_lead_recycling_check, run_lead_redistribution
 except ImportError:
     logging.warning("Some lead scoring modules not found - running in basic mode")
 
@@ -672,24 +673,36 @@ async def get_leads(
     skip: int = 0,
     limit: int = 100,
     status: Optional[LeadStatus] = None,
-    assigned_only: bool = False,
+    show_all: bool = False,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get leads with filtering options"""
+    """Get leads with smart distribution-aware filtering"""
     query = db.query(Lead)
+    
+    # For agents, show only their ACTIVE assigned leads (not closed ones)
+    if current_user.role == UserRole.AGENT:
+        query = query.filter(
+            Lead.assigned_user_id == current_user.id,
+            Lead.status.notin_([LeadStatus.CLOSED_WON, LeadStatus.CLOSED_LOST, LeadStatus.RECYCLED])
+        )
+    elif current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+        # Admins and managers can see all leads if show_all=True
+        if not show_all:
+            # By default, show active leads
+            query = query.filter(
+                Lead.status.notin_([LeadStatus.CLOSED_WON, LeadStatus.CLOSED_LOST, LeadStatus.RECYCLED])
+            )
     
     # Filter by status if provided
     if status:
         query = query.filter(Lead.status == status)
     
-    # Filter by assignment if requested
-    if assigned_only:
-        query = query.filter(Lead.assigned_user_id == current_user.id)
-    
-    # For agents, only show their assigned leads unless they're admin/manager
+    # Order by priority and score for agents
     if current_user.role == UserRole.AGENT:
-        query = query.filter(Lead.assigned_user_id == current_user.id)
+        query = query.order_by(Lead.score.desc(), Lead.assigned_at.desc())
+    else:
+        query = query.order_by(Lead.created_at.desc())
     
     leads = query.offset(skip).limit(limit).all()
     return leads
@@ -752,6 +765,139 @@ async def assign_lead(
     logger.info(f"📋 Lead {lead_id} assigned to {agent.username}")
     return {"message": "Lead assigned successfully"}
 
+# ================================
+# API Routes - Lead Distribution System
+# ================================
+
+@app.get("/api/v1/distribution/stats")
+async def get_distribution_stats(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get lead distribution system statistics"""
+    distribution_service = LeadDistributionService(db)
+    
+    if current_user.role == UserRole.AGENT:
+        # Agents get their personal stats
+        agent_stats = distribution_service.get_agent_dashboard_stats(current_user.id)
+        return {
+            "type": "agent_stats",
+            "stats": agent_stats
+        }
+    else:
+        # Managers and admins get system stats
+        system_stats = distribution_service.get_system_lead_stats()
+        return {
+            "type": "system_stats",
+            "stats": system_stats
+        }
+
+@app.post("/api/v1/distribution/redistribute")
+async def force_redistribution(
+    agent_id: Optional[int] = None,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Force lead redistribution (admin/manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    distribution_service = LeadDistributionService(db)
+    
+    if agent_id:
+        # Redistribute for specific agent
+        result = distribution_service.force_redistribute_agent(agent_id)
+        if "error" in result:
+            raise HTTPException(status_code=404, detail=result["error"])
+        
+        # Notify the agent
+        await manager.send_personal_message(
+            json.dumps({
+                "type": "leads_redistributed",
+                "message": f"📋 {result['leads_distributed']} new leads assigned to you!",
+                "stats": result["stats"]
+            }),
+            agent_id
+        )
+        
+        return result
+    else:
+        # Redistribute for all agents
+        result = distribution_service.redistribute_all_leads()
+        
+        # Notify all agents who got new leads
+        for agent_name, stats in result.get("agent_stats", {}).items():
+            if stats["distributed"] > 0:
+                agent = db.query(User).filter(User.username == agent_name).first()
+                if agent:
+                    await manager.send_personal_message(
+                        json.dumps({
+                            "type": "leads_redistributed",
+                            "message": f"📋 {stats['distributed']} new leads assigned to you!",
+                            "total_leads": stats["total_leads"]
+                        }),
+                        agent.id
+                    )
+        
+        return result
+
+@app.post("/api/v1/distribution/recycle-check")
+async def trigger_recycle_check(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Manually trigger 24-hour inactivity check (admin/manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    recycled_count = run_lead_recycling_check(db)
+    
+    return {
+        "message": f"Recycling check complete",
+        "leads_recycled": recycled_count,
+        "redistributed": recycled_count > 0
+    }
+
+@app.get("/api/v1/distribution/agent-performance")
+async def get_agent_performance(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get agent performance metrics"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        # Agents can only see their own stats
+        distribution_service = LeadDistributionService(db)
+        return distribution_service.get_agent_dashboard_stats(current_user.id)
+    
+    # Managers and admins see all agent performance
+    agents = db.query(User).filter(User.role == UserRole.AGENT, User.is_active == True).all()
+    distribution_service = LeadDistributionService(db)
+    
+    performance_data = []
+    for agent in agents:
+        stats = distribution_service.get_agent_dashboard_stats(agent.id)
+        stats.update({
+            "agent_id": agent.id,
+            "agent_name": agent.full_name,
+            "username": agent.username,
+            "total_points": agent.total_points,
+            "level": agent.level
+        })
+        performance_data.append(stats)
+    
+    # Sort by sales made today, then by total points
+    performance_data.sort(key=lambda x: (x["sales_today"], x["total_points"]), reverse=True)
+    
+    return {
+        "agents": performance_data,
+        "summary": {
+            "total_agents": len(performance_data),
+            "total_active_leads": sum(agent["active_leads"] for agent in performance_data),
+            "total_sales_today": sum(agent["sales_today"] for agent in performance_data),
+            "total_activities_today": sum(agent["activities_today"] for agent in performance_data)
+        }
+    }
+
 @app.patch("/api/v1/leads/{lead_id}/status")
 async def update_lead_status(
     lead_id: int,
@@ -759,7 +905,7 @@ async def update_lead_status(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Update lead status"""
+    """Update lead status with automatic redistribution"""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -769,18 +915,48 @@ async def update_lead_status(
         raise HTTPException(status_code=403, detail="Can only update your assigned leads")
     
     old_status = lead.status
-    lead.status = status
-    lead.updated_at = datetime.utcnow()
+    
+    # Use the distribution service to handle the status change
+    distribution_service = LeadDistributionService(db)
+    success = distribution_service.handle_lead_disposition(lead_id, status, current_user.id)
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update lead status")
     
     # Award points for status changes
     if status == LeadStatus.QUALIFIED and old_status != LeadStatus.QUALIFIED:
         GamificationService.award_points(db, current_user.id, "lead_qualified")
     elif status == LeadStatus.CLOSED_WON:
         GamificationService.award_points(db, current_user.id, "deal_closed")
-    
-    db.commit()
+        await manager.send_personal_message(
+            json.dumps({
+                "type": "sale_made",
+                "message": f"🎉 Sale made! New leads assigned automatically.",
+                "lead_id": lead_id
+            }),
+            current_user.id
+        )
+    elif status == LeadStatus.CLOSED_LOST:
+        await manager.send_personal_message(
+            json.dumps({
+                "type": "lead_closed",
+                "message": f"📋 Lead closed. New leads assigned automatically.",
+                "lead_id": lead_id
+            }),
+            current_user.id
+        )
     
     logger.info(f"📊 Lead {lead_id} status updated: {old_status} → {status}")
+    
+    # Get updated agent stats for response
+    if current_user.role == UserRole.AGENT:
+        agent_stats = distribution_service.get_agent_dashboard_stats(current_user.id)
+        return {
+            "message": "Lead status updated successfully",
+            "agent_stats": agent_stats,
+            "auto_assigned": status in [LeadStatus.CLOSED_WON, LeadStatus.CLOSED_LOST]
+        }
+    
     return {"message": "Lead status updated successfully"}
 
 # ================================
@@ -817,9 +993,12 @@ async def create_activity(
     
     db.add(db_activity)
     
-    # Update lead contact tracking
+    # Update lead contact tracking for distribution system
     lead.last_contact_date = datetime.utcnow()
     lead.contact_attempts += 1
+    
+    # Reset recycling timer since there was activity
+    lead.recycling_eligible_at = None
     
     # Award gamification points
     GamificationService.award_points(db, current_user.id, activity.activity_type)
@@ -1009,6 +1188,40 @@ async def health_check():
     return health_status
 
 # ================================
+# Background Tasks
+# ================================
+
+async def background_task_runner():
+    """Run periodic background tasks"""
+    logger.info("🔄 Starting background task runner")
+    
+    while True:
+        try:
+            # Sleep for 30 minutes between checks
+            await asyncio.sleep(30 * 60)
+            
+            db = SessionLocal()
+            try:
+                # Check for inactive leads every 30 minutes
+                recycled_count = run_lead_recycling_check(db)
+                if recycled_count > 0:
+                    logger.info(f"♻️ Background task recycled {recycled_count} leads")
+                
+                # Ensure all agents have adequate leads
+                distribution_result = run_lead_redistribution(db)
+                if distribution_result.get("leads_distributed", 0) > 0:
+                    logger.info(f"📋 Background task distributed {distribution_result['leads_distributed']} leads")
+                
+            except Exception as e:
+                logger.error(f"❌ Background task error: {e}")
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.error(f"❌ Background task runner error: {e}")
+            await asyncio.sleep(60)  # Wait 1 minute before retrying
+
+# ================================
 # Startup Events
 # ================================
 
@@ -1040,9 +1253,21 @@ async def startup_event():
             db.add(admin_user)
             db.commit()
             logger.info("👑 Default admin user created: admin / admin123")
+        
+        # Initialize lead distribution system
+        try:
+            from crm_lead_distribution import initialize_lead_distribution
+            initialize_lead_distribution(db)
+            logger.info("🎯 Lead distribution system initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Lead distribution initialization failed: {e}")
+        
         db.close()
     except Exception as e:
-        logger.warning(f"⚠️ Admin user creation failed: {e}")
+        logger.warning(f"⚠️ Startup initialization failed: {e}")
+    
+    # Start background tasks
+    asyncio.create_task(background_task_runner())
 
 @app.on_event("shutdown")
 async def shutdown_event():
