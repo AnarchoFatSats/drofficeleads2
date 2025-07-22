@@ -9,12 +9,10 @@ frontend:
         - echo "Building CRM static files"
         # Copy production landing page that explains how to access local CRM
         - cp production_crm_landing.html index.html
-        - cp manifest.json .
         - ls -la
   artifacts:
     baseDirectory: /
     files:
       - 'index.html'
-      - 'manifest.json'
   cache:
     paths: [] # Force fresh deployment of CRM files
