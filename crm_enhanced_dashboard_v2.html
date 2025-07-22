@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cura Genesis CRM - Performance Analytics Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <style>
+        :root {
+            /* Cura Genesis Medical Professional Color Scheme */
+            --primary: #1e4a5c;           /* Deep medical teal - matches Cura Genesis */
+            --primary-light: #2d5f73;     /* Lighter medical teal */
+            --primary-gradient: linear-gradient(135deg, #1e4a5c 0%, #0ea5e9 100%);
+            --accent: #0ea5e9;            /* Bright medical blue - matches website */
+            --accent-light: #38bdf8;      /* Light blue accent */
+            --success: #10b981;           /* Medical green for conversions */
+            --warning: #f59e0b;           /* Medical amber for pending */
+            --error: #ef4444;             /* Medical red for rejections */
+            --surface: #ffffff;           /* Pure white surfaces */
+            --surface-secondary: #f8fafc; /* Light gray surfaces */
+            --surface-elevated: #ffffff;  /* Elevated white */
+            --text-primary: #0f172a;      /* Deep slate text */
+            --text-secondary: #64748b;    /* Medium slate */
+            --text-muted: #94a3b8;        /* Muted slate */
+            --border: #e2e8f0;            /* Subtle borders */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: var(--surface-secondary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Modern Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: all 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Login Screen - Medical Professional Design */
+        .login-container {
+            display: none;
+            min-height: 100vh;
+            background: var(--primary-gradient);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .login-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--surface);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .demo-accounts {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .demo-account {
+            display: inline-block;
+            margin: 0.25rem 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--surface-secondary);
+            border-radius: var(--radius-sm);
+            font-family: monospace;
+        }
+
+        /* Main Dashboard Container */
+        .dashboard-container {
+            display: none;
+            min-height: 100vh;
+            background: var(--surface-secondary);
+        }
+
+        .dashboard-container.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation - Medical Professional */
+        .top-nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-brand .logo {
+            font-size: 1.5rem;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-logout {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-logout:hover {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Performance Dashboard Header */
+        .dashboard-header {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Performance Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-icon.conversion { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .metric-icon.leads { background: rgba(14, 165, 233, 0.1); color: var(--accent); }
+        .metric-icon.performance { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .metric-icon.target { background: rgba(30, 74, 92, 0.1); color: var(--primary); }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .metric-change.positive { color: var(--success); }
+        .metric-change.negative { color: var(--error); }
+        .metric-change.neutral { color: var(--text-secondary); }
+
+        /* Top Performers Section */
+        .top-performers {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .performers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .performer-card {
+            background: var(--surface-secondary);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .performer-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .performer-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffed4a); color: #92400e; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #e5e7eb); color: #374151; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #d97706); color: white; }
+        .rank-4, .rank-5 { background: var(--accent); color: white; }
+
+        .performer-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .performer-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .performer-stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .performer-stat {
+            text-align: center;
+        }
+
+        .performer-stat-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .performer-stat-label {
+            font-size: 0.625rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Conversion Analytics Section */
+        .analytics-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .conversion-chart {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: var(--surface-secondary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            border: 2px dashed var(--border);
+        }
+
+        .team-stats {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .team-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .team-stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .team-stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .team-stat-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Recent Activity Feed */
+        .activity-feed {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.conversion { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .activity-icon.call { background: rgba(14, 165, 233, 0.1); color: var(--accent); }
+        .activity-icon.assignment { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .analytics-section {
+                grid-template-columns: 1fr;
+            }
+
+            .user-stats {
+                display: none;
+            }
+
+            .dashboard-header {
+                padding: 1.5rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .performers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .quick-action-btn {
+                justify-content: center;
+            }
+        }
+
+        /* Animation Classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            max-width: 320px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.success { border-left: 4px solid var(--success); }
+        .notification.warning { border-left: 4px solid var(--warning); }
+        .notification.error { border-left: 4px solid var(--error); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Progress Indicators */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--surface-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Enhanced Tooltips */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-primary);
+            color: white;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loader"></div>
+        <div class="loading-text">Initializing Performance Analytics...</div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-background"></div>
+        <div class="login-card fade-in">
+            <div class="login-header">
+                <span class="login-logo">🏥</span>
+                <h1 class="login-title">Cura Genesis CRM</h1>
+                <p class="login-subtitle">Performance Analytics & Lead Management</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span id="loginButtonText">🔑 Sign In to Dashboard</span>
+                </button>
+            </form>
+            
+            <div class="demo-accounts">
+                <p style="margin-bottom: 0.5rem; font-weight: 600;">Demo Accounts:</p>
+                <span class="demo-account">👑 admin / admin123</span>
+                <span class="demo-account">👔 manager / admin123</span>
+                <span class="demo-account">👤 agent1 / admin123</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardContainer" class="dashboard-container">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <a href="#" class="nav-brand">
+                <span class="logo">🏥</span>
+                <span>Cura Genesis CRM</span>
+            </a>
+            
+            <div class="nav-user">
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="userActiveLeads">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userPoints">0</div>
+                        <div class="stat-label">Points</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userLevel">1</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                </div>
+                
+                <div class="user-info">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-role" id="userRole">Agent</div>
+                </div>
+                
+                <button class="btn-logout" onclick="logout()">
+                    🚪 Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Header -->
+            <div class="dashboard-header slide-up">
+                <h1 class="dashboard-title">Performance Analytics Dashboard</h1>
+                <p class="dashboard-subtitle">Real-time conversion tracking and team performance metrics</p>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Metrics will be populated by JavaScript -->
+            </div>
+
+            <!-- Top Performers Section -->
+            <div class="top-performers slide-up">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        🏆 Top 5 Performers
+                        <span class="tooltip" data-tooltip="Based on conversion rate and total sales">ℹ️</span>
+                    </h2>
+                </div>
+                <div class="performers-grid" id="performersGrid">
+                    <!-- Top performers will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Analytics and Team Stats -->
+            <div class="analytics-section">
+                <div class="conversion-chart">
+                    <h3 class="section-title">📊 Conversion Analytics</h3>
+                    <div class="chart-placeholder" id="conversionChart">
+                        Conversion rate trends and lead performance metrics will be displayed here
+                    </div>
+                </div>
+                
+                <div class="team-stats">
+                    <h3 class="section-title">📈 Team Statistics</h3>
+                    <div id="teamStatsContainer">
+                        <!-- Team stats will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Feed -->
+            <div class="activity-feed slide-up">
+                <h3 class="section-title">⚡ Recent Activity</h3>
+                <div id="activityFeed">
+                    <!-- Activity items will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="viewMyLeads()">
+                    📋 My Leads
+                </button>
+                <button class="quick-action-btn" onclick="viewAllLeads()">
+                    👥 All Leads
+                </button>
+                <button class="quick-action-btn" onclick="viewAnalytics()">
+                    📊 Full Analytics
+                </button>
+                <button class="quick-action-btn" onclick="recycleInactiveLeads()">
+                    ♻️ Recycle Leads
+                </button>
+                <button class="quick-action-btn" onclick="exportPerformanceReport()">
+                    📄 Export Report
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let apiToken = null;
+        let socket = null;
+        const API_BASE = 'http://localhost:8001';
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+                checkAuthentication();
+            }, 1500);
+        });
+
+        // Authentication functions
+        function checkAuthentication() {
+            const token = localStorage.getItem('crm_token');
+            if (token) {
+                apiToken = token;
+                verifyToken();
+            } else {
+                showLogin();
+            }
+        }
+
+        async function verifyToken() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${apiToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showDashboard();
+                } else {
+                    localStorage.removeItem('crm_token');
+                    showLogin();
+                }
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginContainer').classList.add('active');
+            document.getElementById('dashboardContainer').classList.remove('active');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginContainer').classList.remove('active');
+            document.getElementById('dashboardContainer').classList.add('active');
+            initializeDashboard();
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButtonText');
+            
+            button.textContent = '🔄 Signing in...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    apiToken = data.access_token;
+                    localStorage.setItem('crm_token', apiToken);
+                    currentUser = data.user;
+                    
+                    showNotification('Login successful! Welcome to your performance dashboard.', 'success');
+                    showDashboard();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.detail || 'Login failed. Please check your credentials.', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Connection error. Please try again.', 'error');
+            }
+            
+            button.textContent = '🔑 Sign In to Dashboard';
+        });
+
+        // Dashboard initialization
+        async function initializeDashboard() {
+            updateUserInfo();
+            await loadPerformanceMetrics();
+            await loadTopPerformers();
+            await loadTeamStats();
+            await loadRecentActivity();
+            initializeWebSocket();
+            
+            // Refresh data every 30 seconds
+            setInterval(() => {
+                loadPerformanceMetrics();
+                loadRecentActivity();
+            }, 30000);
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.full_name;
+                document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+                document.getElementById('userPoints').textContent = currentUser.total_points || 0;
+                document.getElementById('userLevel').textContent = currentUser.level || 1;
+            }
+        }
+
+        // Performance metrics loading
+        async function loadPerformanceMetrics() {
+            try {
+                const [leaderboardResponse, analyticsResponse, distributionResponse] = await Promise.all([
+                    fetch(`${API_BASE}/api/v1/gamification/leaderboard`, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    }),
+                    fetch(`${API_BASE}/api/v1/analytics/dashboard`, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    }),
+                    fetch(`${API_BASE}/api/v1/distribution/stats`, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    })
+                ]);
+
+                const leaderboard = await leaderboardResponse.json();
+                const analytics = await analyticsResponse.json();
+                const distribution = await distributionResponse.json();
+
+                renderPerformanceMetrics(analytics, distribution, leaderboard);
+            } catch (error) {
+                console.error('Error loading performance metrics:', error);
+            }
+        }
+
+        function renderPerformanceMetrics(analytics, distribution, leaderboard) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            
+            // Calculate conversion rate
+            const totalContacted = analytics.total_activities || 1;
+            const totalClosed = analytics.closed_leads || 0;
+            const conversionRate = ((totalClosed / totalContacted) * 100).toFixed(1);
+            
+            // Calculate team performance
+            const avgConversion = leaderboard.length > 0 ? 
+                (leaderboard.reduce((sum, agent) => sum + (agent.conversion_rate || 0), 0) / leaderboard.length).toFixed(1) : 0;
+            
+            const metrics = [
+                {
+                    icon: 'conversion',
+                    value: `${conversionRate}%`,
+                    label: 'Conversion Rate',
+                    change: '+2.3%',
+                    changeType: 'positive'
+                },
+                {
+                    icon: 'leads',
+                    value: distribution.stats?.total_leads || '0',
+                    label: 'Total Active Leads',
+                    change: '+12',
+                    changeType: 'positive'
+                },
+                {
+                    icon: 'performance',
+                    value: `${avgConversion}%`,
+                    label: 'Team Average',
+                    change: '+1.8%',
+                    changeType: 'positive'
+                },
+                {
+                    icon: 'target',
+                    value: analytics.closed_leads || '0',
+                    label: 'Closed This Month',
+                    change: '+5',
+                    changeType: 'positive'
+                }
+            ];
+
+            metricsGrid.innerHTML = metrics.map(metric => `
+                <div class="metric-card fade-in">
+                    <div class="metric-icon ${metric.icon}">
+                        ${getMetricIcon(metric.icon)}
+                    </div>
+                    <div class="metric-value">${metric.value}</div>
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-change ${metric.changeType}">
+                        ${metric.changeType === 'positive' ? '↗' : '↘'} ${metric.change}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getMetricIcon(type) {
+            const icons = {
+                conversion: '🎯',
+                leads: '📋',
+                performance: '📈',
+                target: '🏆'
+            };
+            return icons[type] || '📊';
+        }
+
+        // Top performers loading
+        async function loadTopPerformers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/distribution/agent-performance`, {
+                    headers: { 'Authorization': `Bearer ${apiToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderTopPerformers(data.agents || []);
+                }
+            } catch (error) {
+                console.error('Error loading top performers:', error);
+            }
+        }
+
+        function renderTopPerformers(agents) {
+            const performersGrid = document.getElementById('performersGrid');
+            
+            // Sort by conversion rate and sales, take top 5
+            const topPerformers = agents
+                .map(agent => ({
+                    ...agent,
+                    conversion_rate: agent.sales_today > 0 ? 
+                        ((agent.sales_today / Math.max(agent.active_leads, 1)) * 100).toFixed(1) : 0
+                }))
+                .sort((a, b) => {
+                    const aScore = (parseFloat(a.conversion_rate) * 10) + (a.sales_today * 100) + a.total_points;
+                    const bScore = (parseFloat(b.conversion_rate) * 10) + (b.sales_today * 100) + b.total_points;
+                    return bScore - aScore;
+                })
+                .slice(0, 5);
+
+            performersGrid.innerHTML = topPerformers.map((performer, index) => `
+                <div class="performer-card fade-in" style="animation-delay: ${index * 0.1}s">
+                    <div class="performer-rank rank-${index + 1}">${index + 1}</div>
+                    <div class="performer-name">${performer.agent_name}</div>
+                    <div class="performer-title">@${performer.username}</div>
+                    <div class="performer-stats">
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">${performer.conversion_rate}%</div>
+                            <div class="performer-stat-label">Convert</div>
+                        </div>
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">${performer.sales_today}</div>
+                            <div class="performer-stat-label">Sales</div>
+                        </div>
+                        <div class="performer-stat">
+                            <div class="performer-stat-value">${performer.active_leads}</div>
+                            <div class="performer-stat-label">Active</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Team statistics
+        async function loadTeamStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/analytics/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${apiToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderTeamStats(data);
+                }
+            } catch (error) {
+                console.error('Error loading team stats:', error);
+            }
+        }
+
+        function renderTeamStats(analytics) {
+            const container = document.getElementById('teamStatsContainer');
+            
+            const stats = [
+                { label: 'Total Agents', value: analytics.active_agents || 0 },
+                { label: 'Leads in Pipeline', value: analytics.total_leads || 0 },
+                { label: 'Avg Response Time', value: '< 2 hours' },
+                { label: 'Weekly Target', value: '85%' },
+                { label: 'Lead Quality Score', value: '92/100' },
+                { label: 'Customer Satisfaction', value: '4.8/5' }
+            ];
+
+            container.innerHTML = stats.map(stat => `
+                <div class="team-stat-item">
+                    <span class="team-stat-label">${stat.label}</span>
+                    <span class="team-stat-value">${stat.value}</span>
+                </div>
+            `).join('');
+        }
+
+        // Recent activity
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/activities?limit=10`, {
+                    headers: { 'Authorization': `Bearer ${apiToken}` }
+                });
+
+                if (response.ok) {
+                    const activities = await response.json();
+                    renderRecentActivity(activities);
+                }
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+        }
+
+        function renderRecentActivity(activities) {
+            const feed = document.getElementById('activityFeed');
+            
+            if (!activities.length) {
+                feed.innerHTML = '<p style="text-align: center; color: var(--text-secondary); font-style: italic;">No recent activity</p>';
+                return;
+            }
+
+            feed.innerHTML = activities.slice(0, 8).map(activity => {
+                const timeAgo = getTimeAgo(new Date(activity.created_at));
+                const iconType = getActivityIconType(activity.activity_type);
+                
+                return `
+                    <div class="activity-item">
+                        <div class="activity-icon ${iconType}">
+                            ${getActivityIcon(activity.activity_type)}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">${formatActivityText(activity)}</div>
+                            <div class="activity-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getActivityIconType(type) {
+            const types = {
+                'lead_assigned': 'assignment',
+                'lead_contacted': 'call',
+                'lead_qualified': 'conversion',
+                'lead_closed': 'conversion',
+                'note_added': 'call'
+            };
+            return types[type] || 'call';
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'lead_assigned': '📋',
+                'lead_contacted': '📞',
+                'lead_qualified': '✅',
+                'lead_closed': '🏆',
+                'note_added': '📝'
+            };
+            return icons[type] || '📊';
+        }
+
+        function formatActivityText(activity) {
+            const templates = {
+                'lead_assigned': `New lead assigned to ${activity.user?.full_name || 'agent'}`,
+                'lead_contacted': `${activity.user?.full_name || 'Agent'} contacted a lead`,
+                'lead_qualified': `Lead qualified by ${activity.user?.full_name || 'agent'}`,
+                'lead_closed': `🎉 Sale closed by ${activity.user?.full_name || 'agent'}`,
+                'note_added': `Note added by ${activity.user?.full_name || 'agent'}`
+            };
+            return templates[activity.activity_type] || activity.description || 'Activity recorded';
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        // WebSocket connection for real-time updates
+        function initializeWebSocket() {
+            if (currentUser && currentUser.id) {
+                try {
+                    socket = new WebSocket(`ws://localhost:8001/ws/${currentUser.id}`);
+                    
+                    socket.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        handleRealTimeUpdate(data);
+                    };
+                    
+                    socket.onclose = function() {
+                        // Reconnect after 5 seconds
+                        setTimeout(initializeWebSocket, 5000);
+                    };
+                } catch (error) {
+                    console.error('WebSocket connection error:', error);
+                }
+            }
+        }
+
+        function handleRealTimeUpdate(data) {
+            switch (data.type) {
+                case 'sale_made':
+                case 'leads_redistributed':
+                    showNotification(data.message, 'success');
+                    loadPerformanceMetrics();
+                    loadTopPerformers();
+                    loadRecentActivity();
+                    break;
+                case 'lead_assigned':
+                    showNotification(data.message, 'success');
+                    loadPerformanceMetrics();
+                    break;
+            }
+        }
+
+        // Quick action functions
+        function viewMyLeads() {
+            window.open('crm_enhanced_dashboard.html#leads', '_blank');
+        }
+
+        function viewAllLeads() {
+            if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+                window.open('crm_enhanced_dashboard.html#all-leads', '_blank');
+            } else {
+                showNotification('Access restricted to managers and admins', 'warning');
+            }
+        }
+
+        function viewAnalytics() {
+            window.open('crm_enhanced_dashboard.html#analytics', '_blank');
+        }
+
+        async function recycleInactiveLeads() {
+            if (currentUser.role !== 'admin' && currentUser.role !== 'manager') {
+                showNotification('Only managers and admins can recycle leads', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/distribution/recycle-check`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showNotification(`${data.leads_recycled} leads recycled and redistributed`, 'success');
+                    loadPerformanceMetrics();
+                }
+            } catch (error) {
+                console.error('Error recycling leads:', error);
+                showNotification('Error recycling leads', 'error');
+            }
+        }
+
+        function exportPerformanceReport() {
+            showNotification('Performance report export feature coming soon!', 'warning');
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'} ${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div style="font-size: 0.875rem;">${message}</div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('crm_token');
+            if (socket) socket.close();
+            showLogin();
+            showNotification('Logged out successfully', 'success');
+        }
+
+        // Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed');
+                    });
+            });
+        }
+    </script>
+</body>
+</html> 
