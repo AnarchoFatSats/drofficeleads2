@@ -357,6 +357,9 @@ function renderLeadsTable() {
             </td>
             <td>
                 <div class="action-buttons">
+                    <button class="btn-edit" data-lead-id="${lead.id}" data-action="edit-lead" title="Edit Lead">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button class="btn-copy" data-lead-id="${lead.id}" data-action="copy-lead" title="Copy Lead Info">
                         <i class="fas fa-copy"></i>
                     </button>
@@ -399,6 +402,9 @@ function handleTableClick(event) {
     switch (action) {
         case 'toggle-expand':
             toggleLeadExpansion(parseInt(leadId));
+            break;
+        case 'edit-lead':
+            openLeadEditModal(parseInt(leadId));
             break;
         case 'copy-lead':
             copyLeadInfo(parseInt(leadId));

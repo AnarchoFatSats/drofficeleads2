@@ -437,6 +437,27 @@ body {
     justify-content: center;
 }
 
+.btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    font-size: 0.8rem;
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+}
+
 .btn-copy {
     display: inline-flex;
     align-items: center;
@@ -1109,6 +1130,79 @@ body {
     transform: scale(1.1);
     color: #2563eb;
     transition: all 0.2s ease;
+}
+
+/* Lead Edit Modal Styling */
+.modal-content {
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-body .section-header {
+    display: flex;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+}
+
+.modal-body .section-header:first-child {
+    margin-top: 0;
+}
+
+.modal-body .section-header h6 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.modal-body .section-header h6 i {
+    margin-right: 8px;
+    color: #3b82f6;
+    width: 20px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.25) !important;
+}
+
+#change-summary {
+    margin-top: 20px;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    background-color: #eff6ff;
+}
+
+#change-summary ul {
+    margin-bottom: 0;
+}
+
+#change-summary li {
+    margin-bottom: 4px;
+}
+
+.modal-footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 16px 24px;
+}
+
+.modal-footer .btn {
+    margin-left: 8px;
 }
 
 /* Loading state for detail sections */

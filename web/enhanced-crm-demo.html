@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CRM Components Demo</title>
+    
+    <!-- Bootstrap CSS for modal support -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Enhanced Components CSS -->
+    <link href="enhanced-components.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-section {
+            background: white;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .demo-header {
+            background: #007bff;
+            color: white;
+            padding: 15px 20px;
+            margin: 0;
+        }
+        
+        .demo-content {
+            padding: 20px;
+        }
+        
+        .nav-tabs {
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .nav-tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            margin-right: 2px;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-tab.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .sample-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .sample-table th,
+        .sample-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .sample-table th {
+            background: #f8f9fa;
+            font-weight: 500;
+        }
+        
+        .sample-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-section">
+            <h1 class="demo-header">🚀 Enhanced CRM Components Demo</h1>
+            <div class="demo-content">
+                <p>This demo showcases all the advanced UI components for performance, user experience, and functionality improvements in your CRM system.</p>
+                
+                <!-- Navigation Tabs -->
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showTab('loading')">Loading States</button>
+                    <button class="nav-tab" onclick="showTab('search')">Advanced Search</button>
+                    <button class="nav-tab" onclick="showTab('charts')">Interactive Charts</button>
+                    <button class="nav-tab" onclick="showTab('reports')">Report Builder</button>
+                    <button class="nav-tab" onclick="showTab('dashboard')">Dashboard</button>
+                    <button class="nav-tab" onclick="showTab('editor')">Rich Text Editor</button>
+                    <button class="nav-tab" onclick="showTab('calendar')">Calendar</button>
+                    <button class="nav-tab" onclick="showTab('upload')">File Upload</button>
+                    <button class="nav-tab" onclick="showTab('bulk')">Bulk Actions</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading States Tab -->
+        <div id="loading-tab" class="tab-content active">
+            <div class="demo-section">
+                <h2 class="demo-header">Loading States & Skeleton Screens</h2>
+                <div class="demo-content">
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="demoLoading('skeleton-demo', 'default')">Default Skeleton</button>
+                        <button class="btn btn-primary" onclick="demoLoading('skeleton-demo', 'card')">Card Skeleton</button>
+                        <button class="btn btn-primary" onclick="demoLoading('skeleton-demo', 'table')">Table Skeleton</button>
+                        <button class="btn btn-primary" onclick="demoLoading('skeleton-demo', 'chart')">Chart Skeleton</button>
+                    </div>
+                    <div id="skeleton-demo">
+                        <p>Click the buttons above to see different skeleton loading states.</p>
+                    </div>
+                    
+                    <h4>Progress Indicator</h4>
+                    <div id="progress-demo"></div>
+                    <button class="btn btn-success" onclick="demoProgress()">Simulate Progress</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Search Tab -->
+        <div id="search-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Advanced Search & Filtering</h2>
+                <div class="demo-content">
+                    <div id="search-demo"></div>
+                    <div id="search-results" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Charts Tab -->
+        <div id="charts-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Interactive Charts with Drill-Down</h2>
+                <div class="demo-content">
+                    <div id="chart-demo" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Builder Tab -->
+        <div id="reports-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Custom Report Builder</h2>
+                <div class="demo-content">
+                    <div id="report-demo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Customization Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Dashboard Customization</h2>
+                <div class="demo-content">
+                    <div id="dashboard-demo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rich Text Editor Tab -->
+        <div id="editor-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Rich Text Editor</h2>
+                <div class="demo-content">
+                    <div id="editor-demo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Integration Tab -->
+        <div id="calendar-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Calendar Integration</h2>
+                <div class="demo-content">
+                    <div id="calendar-demo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="upload-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">File Upload System</h2>
+                <div class="demo-content">
+                    <div id="upload-demo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Tab -->
+        <div id="bulk-tab" class="tab-content">
+            <div class="demo-section">
+                <h2 class="demo-header">Bulk Actions System</h2>
+                <div class="demo-content">
+                    <div id="bulk-demo"></div>
+                    
+                    <h4>Sample Data Table</h4>
+                    <table class="sample-table table-bulk">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" class="select-all" id="select-all-checkbox">
+                                    Select All
+                                </th>
+                                <th>Practice Name</th>
+                                <th>Owner</th>
+                                <th>City</th>
+                                <th>State</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bulk-item">
+                                <td><input type="checkbox" value="1"> </td>
+                                <td>Advanced Medical Center</td>
+                                <td>Dr. Smith</td>
+                                <td>New York</td>
+                                <td>NY</td>
+                                <td>85</td>
+                                <td>Active</td>
+                            </tr>
+                            <tr class="bulk-item">
+                                <td><input type="checkbox" value="2"> </td>
+                                <td>Health Plus Clinic</td>
+                                <td>Dr. Johnson</td>
+                                <td>Los Angeles</td>
+                                <td>CA</td>
+                                <td>92</td>
+                                <td>Pending</td>
+                            </tr>
+                            <tr class="bulk-item">
+                                <td><input type="checkbox" value="3"> </td>
+                                <td>Premier Healthcare</td>
+                                <td>Dr. Williams</td>
+                                <td>Chicago</td>
+                                <td>IL</td>
+                                <td>78</td>
+                                <td>Active</td>
+                            </tr>
+                            <tr class="bulk-item">
+                                <td><input type="checkbox" value="4"> </td>
+                                <td>City Medical Group</td>
+                                <td>Dr. Brown</td>
+                                <td>Houston</td>
+                                <td>TX</td>
+                                <td>88</td>
+                                <td>Review</td>
+                            </tr>
+                            <tr class="bulk-item">
+                                <td><input type="checkbox" value="5"> </td>
+                                <td>Valley Health Center</td>
+                                <td>Dr. Davis</td>
+                                <td>Phoenix</td>
+                                <td>AZ</td>
+                                <td>76</td>
+                                <td>Active</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS for modal support -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Enhanced Components JavaScript -->
+    <script src="enhanced-components.js"></script>
+    <script src="enhanced-components-part2.js"></script>
+    <script src="enhanced-components-part3.js"></script>
+
+    <script>
+        // Tab Navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked nav tab
+            event.target.classList.add('active');
+            
+            // Initialize components for the active tab
+            initializeTabComponents(tabName);
+        }
+
+        // Loading States Demo
+        function demoLoading(containerId, type) {
+            LoadingStates.showLoading(containerId, type);
+            
+            setTimeout(() => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = `
+                    <div style="padding: 20px; background: #f8f9fa; border-radius: 6px;">
+                        <h5>Content Loaded!</h5>
+                        <p>This simulates real content appearing after loading is complete.</p>
+                    </div>
+                `;
+                LoadingStates.hideLoading(containerId);
+            }, 2000);
+        }
+
+        // Progress Demo
+        function demoProgress() {
+            const container = document.getElementById('progress-demo');
+            let progress = 0;
+            
+            const updateProgress = () => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                container.innerHTML = LoadingStates.createProgressIndicator(Math.floor(progress));
+                
+                if (progress < 100) {
+                    setTimeout(updateProgress, 200);
+                } else {
+                    setTimeout(() => {
+                        container.innerHTML = '<div class="alert alert-success">Process completed successfully!</div>';
+                    }, 500);
+                }
+            };
+            
+            updateProgress();
+        }
+
+        // Initialize components for each tab
+        function initializeTabComponents(tabName) {
+            switch(tabName) {
+                case 'search':
+                    initializeSearch();
+                    break;
+                case 'charts':
+                    initializeCharts();
+                    break;
+                case 'reports':
+                    initializeReports();
+                    break;
+                case 'dashboard':
+                    initializeDashboard();
+                    break;
+                case 'editor':
+                    initializeEditor();
+                    break;
+                case 'calendar':
+                    initializeCalendar();
+                    break;
+                case 'upload':
+                    initializeUpload();
+                    break;
+                case 'bulk':
+                    initializeBulkActions();
+                    break;
+            }
+        }
+
+        function initializeSearch() {
+            if (document.querySelector('#search-demo .advanced-search')) return;
+            
+            const searchOptions = {
+                placeholder: 'Search leads, practices, doctors...',
+                filters: [
+                    {
+                        field: 'state',
+                        label: 'State',
+                        type: 'select',
+                        options: [
+                            { value: 'CA', label: 'California' },
+                            { value: 'NY', label: 'New York' },
+                            { value: 'TX', label: 'Texas' },
+                            { value: 'FL', label: 'Florida' }
+                        ]
+                    },
+                    {
+                        field: 'score',
+                        label: 'Score Range',
+                        type: 'range'
+                    },
+                    {
+                        field: 'date',
+                        label: 'Date Range',
+                        type: 'date'
+                    },
+                    {
+                        field: 'specialties',
+                        label: 'Specialties',
+                        type: 'checkbox',
+                        options: [
+                            { value: 'cardiology', label: 'Cardiology' },
+                            { value: 'neurology', label: 'Neurology' },
+                            { value: 'orthopedics', label: 'Orthopedics' }
+                        ]
+                    }
+                ]
+            };
+
+            const advancedSearch = new AdvancedSearch('search-demo', searchOptions);
+            
+            // Listen for search events
+            document.getElementById('search-demo').addEventListener('search', (e) => {
+                const { query, filters } = e.detail;
+                
+                document.getElementById('search-results').innerHTML = `
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                        <h5>Search Results</h5>
+                        <p><strong>Query:</strong> "${query}"</p>
+                        <p><strong>Filters:</strong> ${Object.keys(filters).length > 0 ? JSON.stringify(filters, null, 2) : 'None'}</p>
+                        <p><em>In a real application, this would show filtered results from your database.</em></p>
+                    </div>
+                `;
+            });
+        }
+
+        function initializeCharts() {
+            if (document.querySelector('#chart-demo .interactive-chart')) return;
+            
+            const chartOptions = {
+                title: 'Lead Conversion by Region',
+                type: 'bar',
+                drillDown: true
+            };
+
+            const chart = new InteractiveCharts('chart-demo', chartOptions);
+            
+            // Sample data with drill-down capability
+            const sampleData = [
+                {
+                    label: 'West Coast',
+                    value: 150,
+                    drillData: [
+                        { label: 'California', value: 100 },
+                        { label: 'Oregon', value: 30 },
+                        { label: 'Washington', value: 20 }
+                    ]
+                },
+                {
+                    label: 'East Coast',
+                    value: 120,
+                    drillData: [
+                        { label: 'New York', value: 70 },
+                        { label: 'Florida', value: 35 },
+                        { label: 'Massachusetts', value: 15 }
+                    ]
+                },
+                {
+                    label: 'Central',
+                    value: 90,
+                    drillData: [
+                        { label: 'Texas', value: 50 },
+                        { label: 'Illinois', value: 25 },
+                        { label: 'Ohio', value: 15 }
+                    ]
+                }
+            ];
+            
+            chart.renderChart(sampleData);
+        }
+
+        function initializeReports() {
+            if (document.querySelector('#report-demo .report-builder')) return;
+            
+            const reportOptions = {
+                fields: [
+                    { value: 'practice_name', label: 'Practice Name', type: 'text', groupable: true, aggregatable: false },
+                    { value: 'owner_name', label: 'Owner Name', type: 'text', groupable: true, aggregatable: false },
+                    { value: 'city', label: 'City', type: 'text', groupable: true, aggregatable: false },
+                    { value: 'state', label: 'State', type: 'text', groupable: true, aggregatable: false },
+                    { value: 'score', label: 'Lead Score', type: 'number', groupable: false, aggregatable: true },
+                    { value: 'revenue', label: 'Revenue', type: 'number', groupable: false, aggregatable: true },
+                    { value: 'created_date', label: 'Created Date', type: 'date', groupable: true, aggregatable: false }
+                ]
+            };
+
+            new ReportBuilder('report-demo', reportOptions);
+        }
+
+        function initializeDashboard() {
+            if (document.querySelector('#dashboard-demo .dashboard-customizer')) return;
+            
+            const dashboardOptions = {
+                widgets: [
+                    {
+                        type: 'chart',
+                        name: 'Performance Chart',
+                        description: 'Lead conversion metrics',
+                        icon: 'chart-bar'
+                    },
+                    {
+                        type: 'stats',
+                        name: 'Key Statistics',
+                        description: 'Important KPIs',
+                        icon: 'chart-line'
+                    },
+                    {
+                        type: 'table',
+                        name: 'Recent Leads',
+                        description: 'Latest lead activity',
+                        icon: 'table'
+                    },
+                    {
+                        type: 'progress',
+                        name: 'Goal Progress',
+                        description: 'Monthly targets',
+                        icon: 'tasks'
+                    }
+                ]
+            };
+
+            new DashboardCustomizer('dashboard-demo', dashboardOptions);
+        }
+
+        function initializeEditor() {
+            if (document.querySelector('#editor-demo .rich-text-editor')) return;
+            
+            const editorOptions = {
+                placeholder: 'Enter lead notes, communication log, or other details...',
+                toolbar: ['bold', 'italic', 'underline', 'link', 'list', 'fontSize', 'foreColor']
+            };
+
+            const editor = new RichTextEditor('editor-demo', editorOptions);
+            
+            // Listen for content save events
+            document.getElementById('editor-demo').addEventListener('contentSaved', (e) => {
+                console.log('Content saved:', e.detail.content);
+            });
+        }
+
+        function initializeCalendar() {
+            if (document.querySelector('#calendar-demo .calendar-integration')) return;
+            
+            const calendarOptions = {
+                view: 'month',
+                editable: true
+            };
+
+            new CalendarIntegration('calendar-demo', calendarOptions);
+        }
+
+        function initializeUpload() {
+            if (document.querySelector('#upload-demo .file-upload')) return;
+            
+            const uploadOptions = {
+                maxFiles: 5,
+                maxSize: 5 * 1024 * 1024, // 5MB
+                allowedTypes: ['image/*', 'application/pdf', '.doc', '.docx', '.txt']
+            };
+
+            const fileUpload = new FileUpload('upload-demo', uploadOptions);
+            
+            // Listen for file upload events
+            document.getElementById('upload-demo').addEventListener('fileUploaded', (e) => {
+                console.log('File uploaded:', e.detail.file);
+            });
+        }
+
+        function initializeBulkActions() {
+            if (document.querySelector('#bulk-demo .bulk-actions')) return;
+            
+            const bulkOptions = {
+                actions: [
+                    { id: 'delete', label: 'Delete Selected', icon: 'trash', class: 'btn-danger' },
+                    { id: 'export', label: 'Export Selected', icon: 'download', class: 'btn-primary' },
+                    { id: 'assign', label: 'Assign to Agent', icon: 'user-plus', class: 'btn-success' },
+                    { id: 'update-status', label: 'Update Status', icon: 'edit', class: 'btn-warning' }
+                ]
+            };
+
+            const bulkActions = new BulkActions('bulk-demo', bulkOptions);
+            
+            // Listen for bulk action events
+            document.getElementById('bulk-demo').addEventListener('bulkAction', (e) => {
+                console.log('Bulk action:', e.detail);
+                ErrorHandler.showError(`Bulk action "${e.detail.action}" executed on ${e.detail.items.length} items.`, 'info');
+            });
+            
+            document.getElementById('bulk-demo').addEventListener('bulkDelete', (e) => {
+                console.log('Bulk delete:', e.detail);
+                // Remove selected rows from table
+                e.detail.items.forEach(itemId => {
+                    const row = document.querySelector(`input[value="${itemId}"]`).closest('tr');
+                    if (row) row.style.display = 'none';
+                });
+            });
+        }
+
+        // Initialize the default tab
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTabComponents('loading');
+        });
+    </script>
+</body>
+</html> 
