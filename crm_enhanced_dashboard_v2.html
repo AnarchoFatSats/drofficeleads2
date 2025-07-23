@@ -821,7 +821,7 @@
                     <label class="form-label" for="password">Password</label>
                     <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
                 </div>
-                <button type="submit" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="window.loginUser()">
                     <span id="loginButtonText">🔑 Sign In to Dashboard</span>
                 </button>
             </form>
@@ -851,12 +851,12 @@
                         <div class="stat-label">Active</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="userPoints">0</div>
-                        <div class="stat-label">Points</div>
+                        <div class="stat-value" id="userPercentile">0%</div>
+                        <div class="stat-label">Percentile</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="userLevel">1</div>
-                        <div class="stat-label">Level</div>
+                        <div class="stat-value" id="userRank">#1</div>
+                        <div class="stat-label">Rank</div>
                     </div>
                 </div>
                 
@@ -961,6 +961,7 @@
         // Authentication functions
         function checkAuthentication() {
             const token = localStorage.getItem('crm_token');
+            console.log('checkAuthentication called, token:', token ? 'exists' : 'null');
             if (token) {
                 apiToken = token;
                 verifyToken();
@@ -1001,44 +1002,57 @@
             initializeDashboard();
         }
 
-        // Login form handler
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Simple login handler
+        window.loginUser = async function() {
+            console.log('=== DIRECT LOGIN FUNCTION CALLED ===');
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const button = document.getElementById('loginButtonText');
             
-            button.textContent = '🔄 Signing in...';
+            console.log('Direct values:', { username, password: password ? 'provided' : 'empty' });
+            
+            if (!username || !password) {
+                alert('Please enter username and password');
+                return;
+            }
             
             try {
-                const formData = new FormData();
-                formData.append('username', username);
-                formData.append('password', password);
-                
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                console.log('Making direct fetch call...');
+                const response = await fetch('http://localhost:8001/auth/login', {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
                 });
+                
+                console.log('Direct response:', response.status, response.ok);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    apiToken = data.access_token;
-                    localStorage.setItem('crm_token', apiToken);
-                    currentUser = data.user;
-                    
-                    showNotification('Login successful! Welcome to your performance dashboard.', 'success');
-                    showDashboard();
+                    localStorage.setItem('crm_token', data.access_token);
+                    alert('Login successful!');
+                    location.reload();
                 } else {
-                    const error = await response.json();
-                    showNotification(error.detail || 'Login failed. Please check your credentials.', 'error');
+                    const error = await response.text();
+                    console.error('Login failed:', error);
+                    alert('Login failed: ' + error);
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showNotification('Connection error. Please try again.', 'error');
+                alert('Error: ' + error.message);
             }
-            
-            button.textContent = '🔑 Sign In to Dashboard';
+        };
+        
+        // Legacy form handler (backup)
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up backup form handler');
+            const form = document.getElementById('loginForm');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    console.log('Form submit event triggered');
+                    e.preventDefault();
+                    window.loginUser();
+                });
+            }
         });
 
         // Dashboard initialization
@@ -1061,8 +1075,8 @@
             if (currentUser) {
                 document.getElementById('userName').textContent = currentUser.full_name;
                 document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-                document.getElementById('userPoints').textContent = currentUser.total_points || 0;
-                document.getElementById('userLevel').textContent = currentUser.level || 1;
+                document.getElementById('userPercentile').textContent = Math.round(currentUser.current_percentile || 0) + '%';
+                document.getElementById('userRank').textContent = '#' + (currentUser.current_rank || 1);
             }
         }
 
@@ -1185,8 +1199,9 @@
                         ((agent.sales_today / Math.max(agent.active_leads, 1)) * 100).toFixed(1) : 0
                 }))
                 .sort((a, b) => {
-                    const aScore = (parseFloat(a.conversion_rate) * 10) + (a.sales_today * 100) + a.total_points;
-                    const bScore = (parseFloat(b.conversion_rate) * 10) + (b.sales_today * 100) + b.total_points;
+                    // Sort by current rank (lower rank is better), then conversion rate, then sales
+                    const aScore = (parseFloat(a.conversion_rate) * 10) + (a.sales_today * 100) + (1000 - (a.current_rank || 999));
+                    const bScore = (parseFloat(b.conversion_rate) * 10) + (b.sales_today * 100) + (1000 - (b.current_rank || 999));
                     return bScore - aScore;
                 })
                 .slice(0, 5);
@@ -1198,16 +1213,16 @@
                     <div class="performer-title">@${performer.username}</div>
                     <div class="performer-stats">
                         <div class="performer-stat">
-                            <div class="performer-stat-value">${performer.conversion_rate}%</div>
+                            <div class="performer-stat-value">${performer.conversion_rate || 0}%</div>
                             <div class="performer-stat-label">Convert</div>
                         </div>
                         <div class="performer-stat">
-                            <div class="performer-stat-value">${performer.sales_today}</div>
-                            <div class="performer-stat-label">Sales</div>
+                            <div class="performer-stat-value">${Math.round(performer.current_percentile || 0)}%</div>
+                            <div class="performer-stat-label">Percentile</div>
                         </div>
                         <div class="performer-stat">
-                            <div class="performer-stat-value">${performer.active_leads}</div>
-                            <div class="performer-stat-label">Active</div>
+                            <div class="performer-stat-value">${performer.deals_closed || 0}</div>
+                            <div class="performer-stat-label">Deals</div>
                         </div>
                     </div>
                 </div>

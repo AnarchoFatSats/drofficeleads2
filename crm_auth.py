@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -19,6 +19,7 @@ import secrets
 import re
 import enum
 import logging
+from crm_shared_models import UserRole, UserStatus
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,7 @@ Base = declarative_base()
 # DATABASE MODELS
 # ===================================================================
 
-class UserRole(enum.Enum):
-    ADMIN = "admin"
-    MANAGER = "manager" 
-    AGENT = "agent"
-
-class UserStatus(enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
+# UserRole and UserStatus imported from crm_shared_models
 
 class User(Base):
     __tablename__ = "users"

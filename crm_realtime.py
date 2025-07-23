@@ -7,7 +7,7 @@ WebSocket notifications, lead recycling, and background tasks
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Set
@@ -402,7 +402,7 @@ class NotificationService:
             
             notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
             
-            return [NotificationResponse.from_orm(n) for n in notifications]
+            return [NotificationResponse.model_validate(n) for n in notifications]
             
         except Exception as e:
             logger.error(f"Error getting notifications: {e}")

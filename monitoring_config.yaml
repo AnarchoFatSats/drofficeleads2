@@ -1,0 +1,258 @@
+# Cura Genesis CRM - Monitoring Configuration
+# Production monitoring setup for Prometheus, Grafana, and alerting
+
+# ================================
+# Prometheus Configuration
+# ================================
+prometheus:
+  global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+    external_labels:
+      cluster: 'cura-genesis-crm'
+      environment: 'production'
+
+  # Alert manager configuration
+  alerting:
+    alertmanagers:
+      - static_configs:
+          - targets:
+            - alertmanager:9093
+
+  # Load rules once and periodically evaluate them
+  rule_files:
+    - "crm_alerts.yml"
+
+  # Scrape configurations
+  scrape_configs:
+    # CRM Application metrics
+    - job_name: 'crm-app'
+      scrape_interval: 5s
+      static_configs:
+        - targets: ['localhost:8001']
+      metrics_path: '/metrics'
+      
+    # PostgreSQL metrics (requires postgres_exporter)
+    - job_name: 'postgres'
+      static_configs:
+        - targets: ['localhost:9187']
+        
+    # Redis metrics (requires redis_exporter)
+    - job_name: 'redis'
+      static_configs:
+        - targets: ['localhost:9121']
+        
+    # Node/System metrics
+    - job_name: 'node'
+      static_configs:
+        - targets: ['localhost:9100']
+
+# ================================
+# Grafana Dashboard Configuration
+# ================================
+grafana:
+  dashboards:
+    - name: "CRM Overview"
+      panels:
+        - title: "Request Rate"
+          type: "graph"
+          targets:
+            - expr: "rate(crm_http_requests_total[5m])"
+        
+        - title: "Response Time"
+          type: "graph"
+          targets:
+            - expr: "histogram_quantile(0.95, rate(crm_http_request_duration_seconds_bucket[5m]))"
+        
+        - title: "Error Rate"
+          type: "stat"
+          targets:
+            - expr: "rate(crm_http_requests_total{status=~'5..'}[5m]) / rate(crm_http_requests_total[5m]) * 100"
+        
+        - title: "Active Users"
+          type: "stat"
+          targets:
+            - expr: "crm_active_user_sessions"
+        
+        - title: "Database Connections"
+          type: "stat"
+          targets:
+            - expr: "crm_active_connections"
+        
+        - title: "CPU Usage"
+          type: "graph"
+          targets:
+            - expr: "crm_cpu_usage_percent"
+        
+        - title: "Memory Usage"
+          type: "graph"
+          targets:
+            - expr: "crm_memory_usage_bytes"
+        
+        - title: "Lead Processing Rate"
+          type: "graph"
+          targets:
+            - expr: "rate(crm_leads_processed_total[5m])"
+
+# ================================
+# Alert Rules Configuration
+# ================================
+alerts:
+  groups:
+    - name: crm-application
+      rules:
+        - alert: HighErrorRate
+          expr: rate(crm_http_requests_total{status=~'5..'}[5m]) / rate(crm_http_requests_total[5m]) * 100 > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate detected"
+            description: "Error rate is {{ $value }}% for the last 5 minutes"
+        
+        - alert: SlowResponseTime
+          expr: histogram_quantile(0.95, rate(crm_http_request_duration_seconds_bucket[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Slow response times detected"
+            description: "95th percentile response time is {{ $value }}s"
+        
+        - alert: HighCPUUsage
+          expr: crm_cpu_usage_percent > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage"
+            description: "CPU usage is {{ $value }}%"
+        
+        - alert: HighMemoryUsage
+          expr: crm_memory_usage_bytes > 2147483648  # 2GB
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Memory usage is {{ $value | humanize }}B"
+        
+        - alert: DatabaseConnectionsHigh
+          expr: crm_active_connections > 50
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High number of database connections"
+            description: "{{ $value }} active database connections"
+        
+        - alert: ApplicationDown
+          expr: up{job="crm-app"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "CRM application is down"
+            description: "CRM application has been down for more than 1 minute"
+
+# ================================
+# Alertmanager Configuration
+# ================================
+alertmanager:
+  global:
+    smtp_smarthost: 'localhost:587'
+    smtp_from: 'alerts@curagenesis.com'
+  
+  route:
+    group_by: ['alertname']
+    group_wait: 10s
+    group_interval: 10s
+    repeat_interval: 1h
+    receiver: 'web.hook'
+  
+  receivers:
+    - name: 'web.hook'
+      email_configs:
+        - to: 'admin@curagenesis.com'
+          subject: '[ALERT] {{ .GroupLabels.alertname }}'
+          body: |
+            {{ range .Alerts -}}
+            Alert: {{ .Annotations.title }}{{ if .Labels.severity }} - {{ .Labels.severity }}{{ end }}
+            
+            Description: {{ .Annotations.description }}
+            
+            Details:
+            {{ range .Labels.SortedPairs }} - {{ .Name }} = {{ .Value }}
+            {{ end }}
+            {{ end }}
+
+# ================================
+# Log Aggregation (ELK Stack)
+# ================================
+logging:
+  elasticsearch:
+    host: "localhost:9200"
+    index_pattern: "crm-logs-*"
+  
+  logstash:
+    input:
+      beats:
+        port: 5044
+    
+    filter:
+      grok:
+        patterns:
+          - "%{TIMESTAMP_ISO8601:timestamp} - %{LOGLEVEL:level} - %{GREEDYDATA:message}"
+    
+    output:
+      elasticsearch:
+        hosts: ["localhost:9200"]
+        index: "crm-logs-%{+YYYY.MM.dd}"
+  
+  kibana:
+    dashboards:
+      - name: "CRM Logs Overview"
+        visualizations:
+          - "Log Levels Over Time"
+          - "Error Messages"
+          - "Request Logs"
+          - "Database Query Logs"
+
+# ================================
+# Health Check Configuration
+# ================================
+health_checks:
+  endpoints:
+    - name: "Application Health"
+      url: "http://localhost:8001/health"
+      interval: 30s
+      timeout: 5s
+    
+    - name: "Database Health"
+      url: "http://localhost:8001/api/v1/monitoring/health"
+      interval: 30s
+      timeout: 10s
+    
+    - name: "Redis Health"
+      url: "http://localhost:8001/api/v1/monitoring/health"
+      interval: 60s
+      timeout: 5s
+
+# ================================
+# Performance Monitoring
+# ================================
+apm:
+  thresholds:
+    response_time_warning: 1.0  # seconds
+    response_time_critical: 3.0  # seconds
+    error_rate_warning: 2.0     # percentage
+    error_rate_critical: 5.0    # percentage
+    cpu_usage_warning: 70.0     # percentage
+    cpu_usage_critical: 85.0    # percentage
+    memory_usage_warning: 1024  # MB
+    memory_usage_critical: 2048 # MB
+  
+  retention:
+    metrics: "7d"
+    traces: "24h"
+    logs: "30d" 

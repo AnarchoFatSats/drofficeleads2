@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 import logging
 
-# Import our CRM models
+# Import shared models to avoid circular imports
 sys.path.append('.')
-from crm_main import User, Lead, UserRole, LeadStatus, Activity, ActivityType
+from crm_shared_models import UserRole, LeadStatus, ActivityType
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,8 +28,10 @@ class LeadDistributionService:
         self.inactivity_hours = 24
         self.max_recycling_attempts = 3
     
-    def get_active_agents(self) -> List[User]:
+    def get_active_agents(self):
         """Get all active agents who should receive leads"""
+        # Late import to avoid circular dependency
+        from crm_main import User
         return self.db.query(User).filter(
             User.role == UserRole.AGENT,
             User.is_active == True
@@ -37,6 +39,7 @@ class LeadDistributionService:
     
     def get_agent_lead_count(self, agent_id: int) -> int:
         """Get current number of active leads for an agent"""
+        from crm_main import Lead
         return self.db.query(Lead).filter(
             Lead.assigned_user_id == agent_id,
             Lead.status.notin_([
@@ -46,8 +49,9 @@ class LeadDistributionService:
             ])
         ).count()
     
-    def get_available_leads(self, limit: int = None) -> List[Lead]:
+    def get_available_leads(self, limit: int = None):
         """Get leads available for assignment"""
+        from crm_main import Lead
         query = self.db.query(Lead).filter(
             or_(
                 Lead.assigned_user_id.is_(None),
@@ -68,7 +72,7 @@ class LeadDistributionService:
             
         return query.all()
     
-    def assign_lead_to_agent(self, lead: Lead, agent: User) -> bool:
+    def assign_lead_to_agent(self, lead, agent) -> bool:
         """Assign a single lead to an agent"""
         try:
             # Track previous assignments for recycling
@@ -98,7 +102,7 @@ class LeadDistributionService:
             self.db.rollback()
             return False
     
-    def distribute_leads_to_agent(self, agent: User, target_count: int = None) -> int:
+    def distribute_leads_to_agent(self, agent, target_count: int = None) -> int:
         """Distribute leads to bring agent up to target count"""
         if target_count is None:
             target_count = self.leads_per_agent
@@ -151,6 +155,7 @@ class LeadDistributionService:
     
     def handle_lead_disposition(self, lead_id: int, new_status: LeadStatus, agent_id: int) -> bool:
         """Handle lead status change and trigger redistribution if needed"""
+        from crm_main import Lead, User
         lead = self.db.query(Lead).filter(Lead.id == lead_id).first()
         if not lead:
             return False
@@ -175,6 +180,7 @@ class LeadDistributionService:
     
     def check_inactive_leads(self) -> int:
         """Find and recycle leads that haven't been touched in 24 hours"""
+        from crm_main import Lead, Activity
         cutoff_time = datetime.utcnow() - timedelta(hours=self.inactivity_hours)
         
         # Find leads that haven't had activity in 24 hours
@@ -228,6 +234,7 @@ class LeadDistributionService:
     
     def get_agent_dashboard_stats(self, agent_id: int) -> Dict:
         """Get dashboard statistics for a specific agent"""
+        from crm_main import Lead, Activity
         # Active leads count
         active_leads = self.get_agent_lead_count(agent_id)
         
@@ -263,6 +270,7 @@ class LeadDistributionService:
     
     def force_redistribute_agent(self, agent_id: int) -> Dict:
         """Force redistribution for a specific agent"""
+        from crm_main import User
         agent = self.db.query(User).filter(User.id == agent_id).first()
         if not agent:
             return {"error": "Agent not found"}
@@ -278,6 +286,7 @@ class LeadDistributionService:
     
     def get_system_lead_stats(self) -> Dict:
         """Get overall system lead statistics"""
+        from crm_main import Lead
         total_leads = self.db.query(Lead).count()
         
         assigned_leads = self.db.query(Lead).filter(
