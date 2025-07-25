@@ -388,11 +388,11 @@
         const BACKEND_URLS = [
             // Try HTTPS backends first if we're on HTTPS site
             ...(window.location.protocol === 'https:' ? [
-                'https://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com',
+                'https://cura-genesis-crm-alb-370496819.us-east-1.elb.amazonaws.com',
                 'https://api.curagenesis.com'
             ] : []),
-            // HTTP backends (will only work on HTTP sites due to mixed content)
-            'http://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com',
+            // HTTP backends (PRODUCTION BACKEND IS NOW LIVE!)
+            'http://cura-genesis-crm-alb-370496819.us-east-1.elb.amazonaws.com',
             'http://localhost:8001'
         ];
 
