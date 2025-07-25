@@ -3,16 +3,13 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "🏥 Deploying Cura Genesis CRM Dashboard (Full Production Version)"
-        - echo "Backend: http://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com"
+        - echo "🏥 Deploying Cura Genesis CRM Dashboard (Production Ready)"
+        - echo "Features: Smart Backend Detection, Authentication, Demo Mode Fallback"
     build:
       commands:
-        - echo "🚀 Building production CRM with backend integration..."
-        # Deploy the actual CRM dashboard (not the landing page)
-        - cp crm_enhanced_dashboard_v2.html index.html
-        # Update API endpoints from localhost to production
-        - sed -i 's|http://localhost:8001|http://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com|g' index.html
-        - sed -i 's|ws://localhost:8001|ws://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com|g' index.html
+        - echo "🚀 Building production CRM with smart backend integration..."
+        # Deploy the production-ready CRM dashboard
+        - cp crm_production_dashboard.html index.html
         # Copy supporting files
         - cp manifest.json . || echo "manifest.json not found, skipping"
         - mkdir -p web/data && cp web/data/*.json . 2>/dev/null || echo "Creating empty data files"
@@ -20,14 +17,15 @@ frontend:
         - echo '{"summary":{"total_leads":0}}' > summary.json
         - echo '{"regions":[]}' > regions.json
         - ls -la
-        - echo "✅ CRM Dashboard with Backend Integration Ready"
+        - echo "✅ Production CRM Dashboard Ready with Smart Backend Detection"
     postBuild:
       commands:
         - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - echo "🔗 Backend API: http://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com"
-        - echo "✅ Login System: Ready"
-        - echo "✅ Lead Management: Integrated"
-        - echo "✅ Real-time Updates: Active"
+        - echo "🔗 Backend Detection: Automatic (Production + Local + Demo Mode)"
+        - echo "✅ Authentication: JWT Token System"
+        - echo "✅ Real-time Data: Live API Integration"
+        - echo "✅ Fallback Mode: Demo data when backend unavailable"
+        - echo "✅ Mobile Ready: Responsive PWA design"
   artifacts:
     baseDirectory: .
     files:
@@ -35,4 +33,4 @@ frontend:
       - 'manifest.json'
       - '*.json'
   cache:
-    paths: [] # Force fresh deployment with updated API endpoints
+    paths: [] # Force fresh deployment with updated features
