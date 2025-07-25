@@ -314,12 +314,13 @@
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label class="form-label" for="email">Email</label>
+                    <label class="form-label" for="email">Email/Username</label>
                     <input 
-                        type="email" 
+                        type="text" 
                         id="email" 
                         class="form-input" 
                         value="admin@curagenesis.com"
+                        placeholder="admin@curagenesis.com or admin"
                         required
                     >
                 </div>
@@ -329,7 +330,8 @@
                         type="password" 
                         id="password" 
                         class="form-input"
-                        value="CuraGenesis2024!"
+                        value="admin123"
+                        placeholder="admin123"
                         required
                     >
                 </div>
@@ -384,17 +386,15 @@
     </div>
 
     <script>
-        // Smart Backend URL Detection - Enhanced for HTTPS/HTTP
+        // Smart Backend URL Detection - FIXED: HTTP-only backend
         const BACKEND_URLS = [
-            // Try HTTPS backends first if we're on HTTPS site
-            ...(window.location.protocol === 'https:' ? [
-                'https://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com',
-                'https://api.curagenesis.com'
-            ] : []),
-            // HTTP backends (will only work on HTTP sites due to mixed content)
-            'http://cura-genesis-crm-alb-1468599260.us-east-1.elb.amazonaws.com',
+            // Backend team deployed HTTP-only (no HTTPS endpoint available)
+            'http://cura-genesis-crm-alb-370496819.us-east-1.elb.amazonaws.com',
             'http://localhost:8001'
         ];
+
+        // Note: Mixed content issue - HTTPS site cannot access HTTP backend
+        // Backend team needs to deploy HTTPS endpoint for production use
 
         let API_BASE = null;
         let currentUser = null;
@@ -471,7 +471,16 @@
 
             // No backend available
             console.log('⚠️ No backend servers available - entering demo mode');
-            backendStatus.textContent = '⚠️ Backend servers unavailable. Using demo mode.';
+            
+            // Special message for HTTPS mixed content issue
+            if (window.location.protocol === 'https:') {
+                backendStatus.textContent = '⚠️ HTTPS site cannot access HTTP backend. Backend team needs to deploy HTTPS endpoint. Using demo mode.';
+                console.warn('🔒 MIXED CONTENT ISSUE: HTTPS Amplify site cannot access HTTP backend due to browser security policy.');
+                console.warn('🔧 SOLUTION: Backend team needs to deploy HTTPS endpoint or access site via HTTP.');
+            } else {
+                backendStatus.textContent = '⚠️ Backend servers unavailable. Using demo mode.';
+            }
+            
             backendStatus.className = 'backend-status disconnected';
             API_BASE = null; // Will trigger demo mode
         }
@@ -527,15 +536,24 @@
                     return;
                 }
 
-                // Real API login
+                // Real API login - FIXED: Use JSON with username field
                 console.log(`🔐 Attempting login to: ${API_BASE}/auth/login`);
+                
+                // Backend expects JSON with username/password (not email)
+                const loginData = {
+                    username: email.includes('@') ? email.split('@')[0] : email, // Extract username from email
+                    password: password
+                };
+                
+                console.log('📤 Login data:', { username: loginData.username, password: '***' });
+                
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ email, password }),
+                    body: JSON.stringify(loginData),
                     mode: 'cors'
                 });
 
@@ -570,11 +588,25 @@
             }
         });
 
-        // Enhanced Error Message Helper
+        // Enhanced Error Message Helper - FIXED: Handle arrays
         function getErrorMessage(errorData, statusCode) {
             // Handle different error response formats
             if (typeof errorData === 'string') {
                 return errorData;
+            }
+            
+            // Handle arrays (like Array(1) from backend)
+            if (Array.isArray(errorData)) {
+                if (errorData.length > 0) {
+                    const firstError = errorData[0];
+                    if (typeof firstError === 'string') {
+                        return firstError;
+                    }
+                    if (firstError && typeof firstError === 'object') {
+                        return firstError.detail || firstError.message || firstError.msg || JSON.stringify(firstError);
+                    }
+                }
+                return `Validation errors (${errorData.length} issues)`;
             }
             
             if (errorData && typeof errorData === 'object') {
@@ -583,6 +615,7 @@
                        errorData.message || 
                        errorData.error || 
                        errorData.msg ||
+                       JSON.stringify(errorData) ||
                        `Server error (${statusCode})`;
             }
             
