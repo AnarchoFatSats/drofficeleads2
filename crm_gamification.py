@@ -6,7 +6,7 @@ Points, badges, achievements, and leaderboards to motivate sales team
 
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Float, Text, JSON
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Any, Tuple
@@ -19,7 +19,8 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 # ===================================================================
 # ENUMS
