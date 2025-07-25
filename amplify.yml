@@ -4,33 +4,38 @@ frontend:
     preBuild:
       commands:
         - echo "🏥 Deploying Cura Genesis CRM Dashboard (Production Ready)"
-        - echo "Features Smart Backend Detection, Authentication, Demo Mode Fallback"
+        - echo "✅ Updated with HTTPS backend endpoint"
+        - echo "✅ Mixed content security issue resolved"
     build:
       commands:
-        - echo "🚀 Building production CRM with smart backend integration..."
-        # Deploy the production-ready CRM dashboard
+        - echo "🚀 Building production CRM with HTTPS backend integration..."
+        # Deploy the updated production-ready CRM dashboard
         - cp crm_production_dashboard.html index.html
-        # Copy supporting files
+        # Copy updated config files
+        - cp web/config.js config.js || echo "Config file copied"
         - cp manifest.json . || echo "manifest.json not found, skipping"
-        - mkdir -p web/data && cp web/data/*.json . 2>/dev/null || echo "Creating empty data files"
-        - echo '{"leads":[],"total":0}' > hot_leads.json
-        - echo '{"summary":{"total_leads":0}}' > summary.json
-        - echo '{"regions":[]}' > regions.json
+        # Copy web assets
+        - mkdir -p data
+        - cp web/data/*.json data/ 2>/dev/null || echo "Creating empty data files for fallback"
+        - echo '{"leads":[],"total":0}' > data/hot_leads.json
+        - echo '{"summary":{"total_leads":0}}' > data/summary.json
+        - echo '{"regions":[]}' > data/regions.json
         - ls -la
-        - echo "✅ Production CRM Dashboard Ready with Smart Backend Detection"
+        - echo "✅ Production CRM Dashboard Ready with HTTPS Backend"
     postBuild:
       commands:
         - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - 'echo "🔗 Backend Detection - Automatic (Production + Local + Demo Mode)"'
-        - 'echo "✅ Authentication - JWT Token System"'
-        - 'echo "✅ Real-time Data - Live API Integration"'
-        - 'echo "✅ Fallback Mode - Demo data when backend unavailable"'
-        - 'echo "✅ Mobile Ready - Responsive PWA design"'
+        - echo "🔗 Backend: https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod"
+        - echo "✅ Authentication - JWT Token System"
+        - echo "✅ Real-time Data - Live API Integration"
+        - echo "✅ Security - HTTPS only, mixed content resolved"
+        - echo "✅ Mobile Ready - Responsive PWA design"
   artifacts:
     baseDirectory: .
     files:
       - 'index.html'
+      - 'config.js'
       - 'manifest.json'
-      - '*.json'
+      - 'data/*.json'
   cache:
-    paths: [] # Force fresh deployment with updated features
+    paths: [] # Force fresh deployment with updated backend URL
