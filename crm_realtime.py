@@ -7,8 +7,7 @@ WebSocket notifications, lead recycling, and background tasks
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, JSON
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Set
 from pydantic import BaseModel
@@ -25,7 +24,8 @@ from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 # ===================================================================
 # ENUMS
@@ -81,7 +81,7 @@ class Notification(Base):
     task_id = Column(Integer, ForeignKey("tasks.id"))
     
     # Metadata
-    metadata = Column(JSON)  # Additional data for notification
+    notification_metadata = Column(JSON)  # Additional data for notification
     expires_at = Column(DateTime)  # Auto-expire notifications
     
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -306,7 +306,7 @@ class NotificationService:
                 lead_id=notification_data.lead_id,
                 activity_id=notification_data.activity_id,
                 task_id=notification_data.task_id,
-                metadata=notification_data.metadata,
+                                 notification_metadata=notification_data.metadata,
                 expires_at=notification_data.expires_at
             )
             
@@ -342,7 +342,7 @@ class NotificationService:
                 "action_url": notification.action_url,
                 "action_text": notification.action_text,
                 "created_at": notification.created_at.isoformat(),
-                "metadata": notification.metadata
+                                 "metadata": notification.notification_metadata
             }
         }
         
