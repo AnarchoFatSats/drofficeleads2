@@ -4,7 +4,7 @@ frontend:
     preBuild:
       commands:
         - echo "🏥 Deploying Cura Genesis CRM Dashboard (Production Ready)"
-        - echo "Features: Smart Backend Detection, Authentication, Demo Mode Fallback"
+        - echo "Features Smart Backend Detection, Authentication, Demo Mode Fallback"
     build:
       commands:
         - echo "🚀 Building production CRM with smart backend integration..."
@@ -21,11 +21,11 @@ frontend:
     postBuild:
       commands:
         - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - echo "🔗 Backend Detection: Automatic (Production + Local + Demo Mode)"
-        - echo "✅ Authentication: JWT Token System"
-        - echo "✅ Real-time Data: Live API Integration"
-        - echo "✅ Fallback Mode: Demo data when backend unavailable"
-        - echo "✅ Mobile Ready: Responsive PWA design"
+        - 'echo "🔗 Backend Detection - Automatic (Production + Local + Demo Mode)"'
+        - 'echo "✅ Authentication - JWT Token System"'
+        - 'echo "✅ Real-time Data - Live API Integration"'
+        - 'echo "✅ Fallback Mode - Demo data when backend unavailable"'
+        - 'echo "✅ Mobile Ready - Responsive PWA design"'
   artifacts:
     baseDirectory: .
     files:
