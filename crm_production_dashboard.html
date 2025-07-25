@@ -536,21 +536,24 @@
                     return;
                 }
 
-                // Real API login - FIXED: Use correct format for backend
+                // Real API login - FIXED: Use JSON with username field
                 console.log(`🔐 Attempting login to: ${API_BASE}/auth/login`);
                 
-                // Backend expects form-encoded data with username/password (not email)
-                const formData = new URLSearchParams();
-                formData.append('username', email.split('@')[0]); // Use username part of email
-                formData.append('password', password);
+                // Backend expects JSON with username/password (not email)
+                const loginData = {
+                    username: email.includes('@') ? email.split('@')[0] : email, // Extract username from email
+                    password: password
+                };
+                
+                console.log('📤 Login data:', { username: loginData.username, password: '***' });
                 
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: formData,
+                    body: JSON.stringify(loginData),
                     mode: 'cors'
                 });
 
