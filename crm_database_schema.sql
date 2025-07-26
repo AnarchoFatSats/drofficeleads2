@@ -15,15 +15,33 @@ CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
 -- Users table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
+    full_name VARCHAR(100),
+    hashed_password VARCHAR(255) NOT NULL,
     role user_role NOT NULL DEFAULT 'agent',
-    status user_status NOT NULL DEFAULT 'active',
-    territory_id INTEGER,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_activity TIMESTAMP WITH TIME ZONE,
+    
+    -- Team hierarchy
+    manager_id INTEGER REFERENCES users(id),
+    
+    -- Performance metrics
+    conversion_rate FLOAT DEFAULT 0.0,
+    activity_score INTEGER DEFAULT 0,
+    deals_closed INTEGER DEFAULT 0,
+    current_percentile FLOAT DEFAULT 0.0,
+    current_rank INTEGER DEFAULT 0,
+    performance_score FLOAT DEFAULT 0.0,
+    badges JSONB,
+    
+    -- Legacy auth fields (for compatibility if needed)
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    status user_status DEFAULT 'active',
+    territory_id INTEGER,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_login TIMESTAMP WITH TIME ZONE,
     failed_login_attempts INTEGER DEFAULT 0,
@@ -463,8 +481,8 @@ INSERT INTO territories (name, description, states) VALUES
 
 -- Default recycling rules
 INSERT INTO recycling_rules (name, priority_levels, days_without_contact, min_contact_attempts) VALUES
-('High Priority Recycling', ARRAY['A+', 'A'], 7, 3),
-('Standard Recycling', ARRAY['B+', 'B', 'C'], 10, 2);
+('High Priority Recycling', ARRAY['A+', 'A']::lead_priority[], 7, 3),
+('Standard Recycling', ARRAY['B+', 'B', 'C']::lead_priority[], 10, 2);
 
 -- Default badges
 INSERT INTO badges (name, description, icon, points_required, conditions) VALUES
@@ -530,5 +548,4 @@ WHERE le.date = CURRENT_DATE;
 -- Comments for documentation
 COMMENT ON TABLE leads IS 'Enhanced leads table preserving original NPPES scoring system with CRM functionality';
 COMMENT ON COLUMN leads.search_vector IS 'Full-text search vector for fast lead searching';
-COMMENT ON COLUMN leads.recycling_eligible_at IS 'Timestamp when lead becomes eligible for recycling (7 days after assignment)';
-COMMENT ON TABLE gamification IS 'Comprehensive gamification system for sales team motivation'; 
+COMMENT ON COLUMN leads.recycling_eligible_at IS 'Timestamp when lead becomes eligible for recycling (7 days after assignment)'; 

@@ -15,15 +15,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
 
-// Load data from JSON files
+// Load data from backend API
 async function loadData() {
     try {
         showLoadingOverlay();
         
-        // Load all data files
+        // Load all data from backend API
         const [leadsResponse, summaryResponse] = await Promise.all([
-            fetch('data/hot_leads.json'),
-            fetch('data/summary.json')
+            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.HOT_LEADS}`),
+            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SUMMARY}`)
         ]);
 
         allLeads = await leadsResponse.json();
