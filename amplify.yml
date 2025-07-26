@@ -3,40 +3,16 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "🏥 Deploying Cura Genesis CRM - FULL ENHANCED DASHBOARD"
-        - echo "✅ Complete admin/manager/agent features"
-        - echo "✅ Team management and analytics"
+        - echo Starting CRM build process
     build:
       commands:
-        - echo "🚀 Building FULL CRM with enhanced dashboard..."
-        # Deploy the ENHANCED dashboard with all admin features
-        - cp crm_enhanced_dashboard_v2.html index.html
-        # Copy updated config files
-        - cp web/config.js config.js || echo "Config file copied"
-        - cp manifest.json . || echo "manifest.json not found, skipping"
-        # Copy web assets
-        - mkdir -p data
-        - cp web/data/*.json data/ 2>/dev/null || echo "Creating empty data files for fallback"
-        - echo '{"leads":[],"total":0}' > data/hot_leads.json
-        - echo '{"summary":{"total_leads":0}}' > data/summary.json
-        - echo '{"regions":[]}' > data/regions.json
-        - ls -la
-        - echo "✅ ENHANCED CRM Dashboard Ready - Full Admin Features"
-    postBuild:
-      commands:
-        - echo "🎉 FULL CRM SYSTEM DEPLOYED!"
-        - 'echo "🔥 Admin Features: Team management, user creation, analytics"'
-        - 'echo "🔥 Manager Features: Team oversight, performance tracking"'  
-        - 'echo "🔥 Agent Features: Lead management, gamification"'
-        - 'echo "✅ Authentication - Multi-role JWT System"'
-        - 'echo "✅ Real-time Data - Live API Integration"'
-        - 'echo "✅ Security - HTTPS only, role-based permissions"'
+        - echo Building CRM Frontend
+        - mkdir -p dist
+        - cp aws_deploy/index.html dist/
+        - cp aws_deploy/login.html dist/
+        - cp web/styles.css dist/
+        - cp manifest.json dist/
   artifacts:
-    baseDirectory: .
+    baseDirectory: dist
     files:
-      - 'index.html'
-      - 'config.js'
-      - 'manifest.json'
-      - 'data/*.json'
-  cache:
-    paths: [] # Force fresh deployment with enhanced dashboard
+      - '**/*'
