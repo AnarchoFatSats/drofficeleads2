@@ -3,14 +3,14 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "🏥 Deploying Cura Genesis CRM Dashboard (Production Ready)"
-        - echo "✅ Updated with HTTPS backend endpoint"
-        - echo "✅ Mixed content security issue resolved"
+        - echo "🏥 Deploying Cura Genesis CRM - FULL ENHANCED DASHBOARD"
+        - echo "✅ Complete admin/manager/agent features"
+        - echo "✅ Team management and analytics"
     build:
       commands:
-        - echo "🚀 Building production CRM with HTTPS backend integration..."
-        # Deploy the updated production-ready CRM dashboard
-        - cp crm_production_dashboard.html index.html
+        - echo "🚀 Building FULL CRM with enhanced dashboard..."
+        # Deploy the ENHANCED dashboard with all admin features
+        - cp crm_enhanced_dashboard_v2.html index.html
         # Copy updated config files
         - cp web/config.js config.js || echo "Config file copied"
         - cp manifest.json . || echo "manifest.json not found, skipping"
@@ -21,15 +21,16 @@ frontend:
         - echo '{"summary":{"total_leads":0}}' > data/summary.json
         - echo '{"regions":[]}' > data/regions.json
         - ls -la
-        - echo "✅ Production CRM Dashboard Ready with HTTPS Backend"
+        - echo "✅ ENHANCED CRM Dashboard Ready - Full Admin Features"
     postBuild:
       commands:
-        - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - 'echo "🔗 Backend URL updated to HTTPS endpoint"'
-        - 'echo "✅ Authentication - JWT Token System"'
+        - echo "🎉 FULL CRM SYSTEM DEPLOYED!"
+        - 'echo "🔥 Admin Features: Team management, user creation, analytics"'
+        - 'echo "🔥 Manager Features: Team oversight, performance tracking"'  
+        - 'echo "🔥 Agent Features: Lead management, gamification"'
+        - 'echo "✅ Authentication - Multi-role JWT System"'
         - 'echo "✅ Real-time Data - Live API Integration"'
-        - 'echo "✅ Security - HTTPS only, mixed content resolved"'
-        - 'echo "✅ Mobile Ready - Responsive PWA design"'
+        - 'echo "✅ Security - HTTPS only, role-based permissions"'
   artifacts:
     baseDirectory: .
     files:
@@ -38,4 +39,4 @@ frontend:
       - 'manifest.json'
       - 'data/*.json'
   cache:
-    paths: [] # Force fresh deployment with updated backend URL
+    paths: [] # Force fresh deployment with enhanced dashboard
