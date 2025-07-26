@@ -1,0 +1,49 @@
+{
+  "lead_inventory_thresholds": {
+    "min_total_leads": 50,
+    "target_total_leads": 150,
+    "min_priority_leads": {
+      "A+": 10,
+      "A": 30,
+      "B": 20
+    }
+  },
+  
+  "performance_thresholds": {
+    "high_conversion_threshold": 0.15,
+    "low_conversion_threshold": 0.05
+  },
+  
+  "upload_controls": {
+    "max_upload_per_run": 100,
+    "min_upload_batch": 25,
+    "max_daily_uploads": 500,
+    "min_time_between_uploads_hours": 1
+  },
+  
+  "monitoring": {
+    "check_interval_minutes": 30,
+    "log_level": "INFO",
+    "enable_email_alerts": false,
+    "alert_email": "admin@curagenesis.com"
+  },
+  
+  "source_management": {
+    "source_files": [
+      "web/data/hot_leads.json"
+    ],
+    "backup_uploaded_leads": true,
+    "cleanup_old_tracking": 30
+  },
+  
+  "business_rules": {
+    "prioritize_high_performers": true,
+    "avoid_overloading_agents": true,
+    "respect_business_hours": false,
+    "business_hours": {
+      "start": "09:00",
+      "end": "17:00",
+      "timezone": "America/New_York"
+    }
+  }
+} 
