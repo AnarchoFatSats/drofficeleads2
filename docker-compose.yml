@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  crm-api:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://crmuser:CuraGenesis2024!SecurePassword@cura-genesis-crm-db.c6ds4c4qok1n.us-east-1.rds.amazonaws.com:5432/cura_genesis_crm
+      - SECRET_KEY=cura-genesis-crm-super-secret-key-change-in-production-2025
+      - DEBUG=false
+      - REDIS_URL=redis://redis:6379/0
+      - ENABLE_GAMIFICATION=true
+      - RECYCLING_ENABLED=true
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data: 

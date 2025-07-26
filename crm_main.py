@@ -69,7 +69,7 @@ except ImportError:
 # ================================
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql://alexsiegel@localhost:5432/cura_genesis_crm"
+    database_url: str = "postgresql://crmuser:CuraGenesis2024!SecurePassword@cura-genesis-crm-db.c6ds4c4qok1n.us-east-1.rds.amazonaws.com:5432/cura_genesis_crm"
     secret_key: str = "cura-genesis-crm-super-secret-key-change-in-production-2025"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
@@ -82,8 +82,7 @@ class Settings(BaseSettings):
     app_name: str = "Cura Genesis CRM"
     debug: bool = True
 
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 settings = Settings()
 
@@ -143,7 +142,7 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     full_name = Column(String(100))
     hashed_password = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole), default=UserRole.AGENT)
+    role = Column(SQLEnum(UserRole, name="user_role", values_callable=lambda x: [e.value for e in x]), default=UserRole.AGENT)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_activity = Column(DateTime(timezone=True))
@@ -200,7 +199,7 @@ class Lead(Base):
     scoring_breakdown = Column(JSON, nullable=True)
     
     # CRM Enhancement Fields
-    status = Column(SQLEnum(LeadStatus), default=LeadStatus.NEW)
+    status = Column(SQLEnum(LeadStatus, name="lead_status", values_callable=lambda x: [e.value for e in x]), default=LeadStatus.NEW)
     source = Column(String, default="nppes_extraction")
     assigned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_at = Column(DateTime, nullable=True)
@@ -227,7 +226,7 @@ class Activity(Base):
     id = Column(Integer, primary_key=True, index=True)
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    activity_type = Column(SQLEnum(ActivityType), nullable=False)
+    activity_type = Column(SQLEnum(ActivityType, name="activity_type", values_callable=lambda x: [e.value for e in x]), nullable=False)
     subject = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     outcome = Column(String, nullable=True)
@@ -1398,6 +1397,11 @@ app.add_middleware(
 async def serve_main_dashboard():
     """Serve the main CRM dashboard"""
     return FileResponse("crm_enhanced_dashboard_v2.html", media_type="text/html")
+
+@app.get("/manifest.json")
+async def serve_manifest():
+    """Serve the web app manifest"""
+    return FileResponse("manifest.json", media_type="application/json")
 
 @app.get("/crm_enhanced_dashboard.html") 
 async def serve_alt_dashboard():
@@ -2943,9 +2947,44 @@ async def background_task_runner():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8001, 
-        log_level="info" if not settings.debug else "debug"
-    ) 
+    import socket
+    
+    def find_available_port(start_port=8001, max_port=8010):
+        """Find an available port starting from start_port"""
+        for port in range(start_port, max_port + 1):
+            try:
+                # Try to bind to the port
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(("0.0.0.0", port))
+                    logger.info(f"✅ Port {port} is available")
+                    return port
+            except OSError:
+                logger.warning(f"⚠️ Port {port} is already in use")
+                continue
+        
+        # If no port found in range, let system assign one
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("0.0.0.0", 0))
+            port = s.getsockname()[1]
+            logger.info(f"✅ Using system-assigned port {port}")
+            return port
+    
+    # Find available port
+    available_port = find_available_port()
+    
+    logger.info(f"🚀 Starting Cura Genesis CRM on http://0.0.0.0:{available_port}")
+    logger.info(f"📊 Dashboard: http://localhost:{available_port}/crm_enhanced_dashboard_v2.html")
+    logger.info(f"📋 API Docs: http://localhost:{available_port}/docs")
+    
+    try:
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=available_port, 
+            log_level="info" if not settings.debug else "debug"
+        )
+    except KeyboardInterrupt:
+        logger.info("🛑 Server stopped by user")
+    except Exception as e:
+        logger.error(f"❌ Server startup failed: {e}")
+        sys.exit(1) 

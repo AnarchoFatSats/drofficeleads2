@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
 
+        main
+// Load data from backend API
+
 // Authentication functions
 function initializeAuth() {
     authToken = localStorage.getItem('auth_token');
@@ -242,14 +245,22 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // Load data from API instead of JSON files
+        main
 async function loadData() {
     try {
         showLoadingOverlay();
         
+        main
+        // Load all data from backend API
+        const [leadsResponse, summaryResponse] = await Promise.all([
+            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.HOT_LEADS}`),
+            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SUMMARY}`)
+
         // Load all data from API endpoints
         const [leadsData, summaryData] = await Promise.all([
             apiCall(CONFIG.ENDPOINTS.LEADS),
             apiCall(CONFIG.ENDPOINTS.SUMMARY)
+        main
         ]);
 
         allLeads = leadsData.leads || [];
