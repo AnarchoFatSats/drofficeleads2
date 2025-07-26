@@ -1,0 +1,3448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cura Genesis CRM - Advanced Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <style>
+        :root {
+            --primary: #1976d2;
+            --primary-light: #42a5f5;
+            --secondary: #2196f3;
+            --accent: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --success: #4caf50;
+            --background: #f5f7fa;
+            --surface: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7b8794;
+            --border: #e1e8ed;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-hover: 0 4px 16px rgba(0,0,0,0.15);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-left: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Login Screen */
+        .login-container {
+            display: none;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container.active {
+            display: flex;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 3rem;
+            box-shadow: var(--shadow-hover);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: var(--background);
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-logout {
+            background: var(--error);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            overflow-x: auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .nav-tab.active,
+        .nav-tab:hover {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Dashboard Overview */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(45deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .leaderboard-item:hover {
+            background: #f8f9fa;
+        }
+
+        .leaderboard-rank {
+            font-size: 1.5rem;
+            font-weight: bold;
+            width: 40px;
+            color: var(--primary);
+        }
+
+        .leaderboard-info {
+            flex: 1;
+            margin-left: 1rem;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .leaderboard-role {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .leaderboard-points {
+            text-align: right;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .leaderboard-level {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Leads Table */
+        .leads-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .leads-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .leads-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .leads-filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        /* Responsive fixes for mobile */
+        @media (max-width: 768px) {
+            .leads-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .leads-filters {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            
+            .filter-select, 
+            .leads-filters .btn {
+                flex-shrink: 0;
+                min-width: max-content;
+            }
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        .leads-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leads-table th,
+        .leads-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leads-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .priority-a-plus {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .priority-a {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .priority-b-plus {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .priority-b {
+            background: #fffde7;
+            color: #f57f17;
+        }
+
+        .priority-c {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-new {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-contacted {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-qualified {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .phone-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .phone-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: var(--border);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 1rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-stats {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .nav-tabs {
+                padding: 0 1rem;
+                justify-content: space-around;
+            }
+
+            .nav-tab {
+                padding: 0.75rem 1rem;
+                font-size: 0.75rem;
+            }
+
+            .leads-table {
+                font-size: 0.875rem;
+            }
+
+            .leads-table th,
+            .leads-table td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .login-card {
+                padding: 2rem;
+            }
+
+            .leaderboard-item {
+                padding: 0.75rem 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .leads-table {
+                display: none;
+            }
+
+            .leads-cards {
+                display: block;
+            }
+
+            .lead-card {
+                background: white;
+                border-radius: var(--radius);
+                padding: 1rem;
+                margin-bottom: 1rem;
+                box-shadow: var(--shadow);
+            }
+
+            .lead-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 0.75rem;
+            }
+
+            .lead-card-name {
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+
+            .lead-card-info {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            .lead-card-label {
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+            }
+
+            .lead-card-value {
+                font-weight: 500;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--accent);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            transform: translateX(100%);
+            transition: var(--transition);
+            z-index: 10001;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        /* PWA Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius);
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-hover);
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        @media (min-width: 769px) {
+            .install-prompt {
+                left: auto;
+                right: 2rem;
+                max-width: 300px;
+            }
+        }
+
+        /* Lead Type Analytics Styles */
+        .lead-type-filters {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .lead-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .lead-type-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .lead-type-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lead-type-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .lead-type-header h4 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .lead-type-priority {
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .lead-type-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .lead-type-stat {
+            text-align: center;
+        }
+
+        .lead-type-stat .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: block;
+        }
+
+        .lead-type-stat .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .best-agent {
+            background: var(--background);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .lead-type-location {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Agent Specialization Styles */
+        .agent-specialization-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .specialization-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .specialization-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .specialization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .specialization-header h5 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .specialization-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .badge-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .badge-neutral {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .specialization-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--background);
+            border-radius: 4px;
+        }
+
+        .metric.highlight {
+            background: var(--accent);
+            color: white;
+        }
+
+        .metric-value {
+            display: block;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .metric.highlight .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .specialization-details {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        /* Agent Leaderboard Styles */
+        .agent-leaderboard {
+            margin-top: 1rem;
+        }
+
+        .agent-specialty-row {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .agent-specialty-row:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .agent-rank {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-right: 1rem;
+            min-width: 2rem;
+        }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-specialty {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .agent-metrics {
+            text-align: right;
+        }
+
+        .agent-conversion {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .agent-stats {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .lead-type-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .lead-type-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .agent-specialization-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .agent-specialty-row {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+            
+            .agent-rank {
+                margin-right: 0;
+            }
+        }
+
+        /* Lead Detail Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border);
+            animation: slideUp 0.3s ease;
+        }
+
+        .lead-detail-modal {
+            font-family: inherit;
+        }
+
+        .lead-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 2rem 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-secondary);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        .lead-detail-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .lead-detail-title h2 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .lead-detail-content {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .detail-section {
+            background: var(--surface-secondary);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .detail-section h3 {
+            margin: 0 0 1rem 0;
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-item label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            background: var(--surface);
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            min-height: 1.2rem;
+            display: flex;
+            align-items: center;
+            word-break: break-word;
+        }
+
+        .score-highlight {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .btn-copy-field {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-left: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .btn-copy-field:hover {
+            background: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .phone-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .phone-link:hover {
+            text-decoration: underline;
+        }
+
+        .lead-detail-actions {
+            padding: 1.5rem 2rem 2rem 2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            background: var(--surface-secondary);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            background: var(--border);
+            transform: translateY(-1px);
+        }
+
+        /* Priority and Status Badges in Modal */
+        .priority-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.05em;
+        }
+
+        /* Mobile Responsive for Modal */
+        @media (max-width: 768px) {
+            .modal-overlay {
+                padding: 1rem;
+            }
+
+            .lead-detail-content {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .lead-detail-header {
+                padding: 1rem;
+            }
+
+            .lead-detail-actions {
+                padding: 1rem;
+                flex-direction: column;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--background);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+        }
+
+        /* Team Management Styles */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .team-member-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .team-member-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .team-member-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-member-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .team-member-info h4 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .team-member-info .role {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: capitalize;
+        }
+
+        .team-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .team-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--background);
+            border-radius: 4px;
+        }
+
+        .team-stat .value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .team-stat .label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Login Screen -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card fade-in">
+            <div class="login-logo">🏥</div>
+            <h1 class="login-title">Cura Genesis CRM</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-full">
+                    <span id="loginButtonText">🔑 Sign In</span>
+                </button>
+            </form>
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
+                <p><strong>Demo Accounts:</strong></p>
+                <p>👑 Admin: admin / admin123</p>
+                <p>👔 Manager: manager / admin123</p>
+                <p>👤 Agent: agent1 / admin123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span>🏥</span>
+                    <span>Cura Genesis CRM</span>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalLeads">--</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="assignedLeads">--</div>
+                        <div class="stat-label">Assigned</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userPoints">--</div>
+                        <div class="stat-label">My Points</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="userLevel">--</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                </div>
+                <div class="user-menu">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User Name</div>
+                        <div class="user-role" id="userRole">Role</div>
+                    </div>
+                    <button class="btn btn-logout" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">📊 Overview</button>
+            <button class="nav-tab" onclick="showTab('leads')">📋 Leads</button>
+            <button class="nav-tab" onclick="showTab('activities')">📝 Activities</button>
+            <button class="nav-tab" onclick="showTab('gamification')">🎮 Gamification</button>
+            <button class="nav-tab" onclick="showTab('analytics')">📈 Analytics</button>
+            <button class="nav-tab" id="team-tab" onclick="showTab('team')" style="display: none;">👥 Team Management</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview">
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏆</span>
+                                Leaderboard
+                            </h3>
+                        </div>
+                        <div id="leaderboardContainer">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading leaderboard...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">📊</span>
+                                Quick Stats
+                            </h3>
+                        </div>
+                        <div id="quickStats">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading statistics...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🔥</span>
+                                Hot Leads
+                            </h3>
+                        </div>
+                        <div id="hotLeads">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading hot leads...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leads Tab -->
+            <div class="tab-content" id="leads">
+                <div class="leads-container">
+                    <div class="leads-header">
+                        <h2 class="leads-title">📋 Leads Management</h2>
+                        <div class="leads-filters">
+                            <select class="filter-select" id="statusFilter" onchange="filterLeads()">
+                                <option value="">All Status</option>
+                                <option value="new">New</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="qualified">Qualified</option>
+                                <option value="demo_scheduled">Demo Scheduled</option>
+                                <option value="closed_won">Closed Won</option>
+                            </select>
+                            <select class="filter-select" id="priorityFilter" onchange="filterLeads()">
+                                <option value="">All Priorities</option>
+                                <option value="A+">A+ Priority</option>
+                                <option value="A">A Priority</option>
+                                <option value="B+">B+ Priority</option>
+                                <option value="B">B Priority</option>
+                                <option value="C">C Priority</option>
+                            </select>
+                            <button class="btn" onclick="refreshLeads()">🔄 Refresh</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Desktop Table -->
+                    <div class="table-container">
+                        <table class="leads-table" id="leadsTable">
+                            <thead>
+                                <tr>
+                                    <th>Practice</th>
+                                    <th>Owner</th>
+                                    <th>Phone</th>
+                                    <th>Location</th>
+                                    <th>Score</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        Loading leads...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="leads-cards" id="leadsCards" style="display: none;">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading leads...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Tab -->
+            <div class="tab-content" id="activities">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">📝</span>
+                            Recent Activities
+                        </h3>
+                        <button class="btn" onclick="refreshActivities()">🔄 Refresh</button>
+                    </div>
+                    <div id="activitiesContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading activities...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gamification Tab -->
+            <div class="tab-content" id="gamification">
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">👤</span>
+                                My Performance
+                            </h3>
+                        </div>
+                        <div id="myPerformance">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading performance data...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏆</span>
+                                Full Leaderboard
+                            </h3>
+                        </div>
+                        <div id="fullLeaderboard">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading leaderboard...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <span class="card-icon">🏅</span>
+                                Achievements
+                            </h3>
+                        </div>
+                        <div id="achievements">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                Loading achievements...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-content" id="analytics">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">📈</span>
+                            Analytics Dashboard
+                        </h3>
+                        <button class="btn" onclick="refreshAnalytics()">🔄 Refresh</button>
+                    </div>
+                    <div id="analyticsContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading analytics...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lead Type Analytics -->
+                <div class="card" style="margin-top: 1rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">🎯</span>
+                            Lead Type Performance Analytics
+                        </h3>
+                        <div class="lead-type-filters">
+                            <select id="specialty-filter" class="form-input" style="margin-right: 0.5rem;">
+                                <option value="">All Specialties</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Nephrology">Nephrology</option>
+                                <option value="Oncology">Oncology</option>
+                                <option value="Endocrinology">Endocrinology</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="Gastroenterology">Gastroenterology</option>
+                                <option value="Pulmonology">Pulmonology</option>
+                                <option value="General">General</option>
+                            </select>
+                            <select id="priority-filter" class="form-input" style="margin-right: 0.5rem;">
+                                <option value="">All Priorities</option>
+                                <option value="A+">A+</option>
+                                <option value="A">A</option>
+                                <option value="B+">B+</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                            <button class="btn" onclick="loadLeadTypeAnalytics()">🔄 Update</button>
+                        </div>
+                    </div>
+                    <div id="leadTypeAnalyticsContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading lead type analytics...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Agent Specialization Analysis -->
+                <div class="card" style="margin-top: 1rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">🏆</span>
+                            Agent Specialization Performance
+                        </h3>
+                        <button class="btn" onclick="loadAgentSpecialization()">🔄 Refresh</button>
+                    </div>
+                    <div id="agentSpecializationContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Loading agent specialization data...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Management Tab -->
+            <div class="tab-content" id="team" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="card-icon">👥</span>
+                            Team Management
+                        </h3>
+                        <button class="btn" onclick="refreshTeamData()">🔄 Refresh</button>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="team-quick-actions" style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="showCreateUserModal()">
+                            <i class="fas fa-user-plus"></i> Add Team Member
+                        </button>
+                        <button class="btn" onclick="showTeamOverview()">
+                            <i class="fas fa-users"></i> My Team Overview
+                        </button>
+                        <button class="btn" onclick="showUnassignedAgents()" id="unassigned-btn" style="display: none;">
+                            <i class="fas fa-user-clock"></i> Unassigned Agents
+                        </button>
+                    </div>
+                    
+                    <!-- Team Overview Section -->
+                    <div id="teamOverviewContainer">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            Select an action above to manage your team...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal" id="createUserModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Team Member</h3>
+                <button class="modal-close" onclick="closeCreateUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="form-group">
+                        <label for="newUsername">Username:</label>
+                        <input type="text" id="newUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newEmail">Email:</label>
+                        <input type="email" id="newEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newFullName">Full Name:</label>
+                        <input type="text" id="newFullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Password:</label>
+                        <input type="password" id="newPassword" required>
+                    </div>
+                    <div class="form-group" id="roleGroup">
+                        <label for="newRole">Role:</label>
+                        <select id="newRole">
+                            <option value="agent">Agent</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="managerGroup" style="display: none;">
+                        <label for="newManagerId">Manager:</label>
+                        <select id="newManagerId">
+                            <option value="">Select Manager...</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeCreateUserModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createUser()">Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toast"></div>
+
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <div>
+            <strong>📱 Install CRM App</strong>
+            <br>Get the full experience with offline access!
+        </div>
+        <div>
+            <button class="btn" onclick="installPWA()" style="margin-right: 0.5rem;">Install</button>
+            <button class="btn-icon" onclick="dismissInstall()">✕</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = null;
+        let currentUser = null;
+        let allLeads = [];
+        let currentTab = 'overview';
+        let deferredPrompt = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+            }, 1000);
+
+            // Check for saved token
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                authToken = savedToken;
+                try {
+                    await loadUserData();
+                    showDashboard();
+                } catch (error) {
+                    console.error('Token validation failed:', error);
+                    showLogin();
+                }
+            } else {
+                showLogin();
+            }
+
+            // PWA Install prompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallPrompt();
+            });
+        }
+
+        function showLogin() {
+            document.getElementById('loginContainer').classList.add('active');
+            document.getElementById('dashboard').classList.remove('active');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginContainer').classList.remove('active');
+            document.getElementById('dashboard').classList.add('active');
+            loadDashboardData();
+        }
+
+        // Authentication
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButtonText');
+            
+            button.textContent = '🔄 Signing in...';
+            
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    showToast('Welcome back, ' + currentUser.full_name + '! 🎉', 'success');
+                    showDashboard();
+                } else {
+                    const error = await response.json();
+                    showToast('Login failed: ' + (error.detail || 'Invalid credentials'), 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            } finally {
+                button.textContent = '🔑 Sign In';
+            }
+        });
+
+        async function loadUserData() {
+            const response = await fetch('http://YOUR-API-ENDPOINT.com/auth/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken
+                }
+            });
+
+            if (response.ok) {
+                currentUser = await response.json();
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserInfo();
+                return currentUser;
+            } else {
+                throw new Error('Failed to load user data');
+            }
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.full_name;
+                document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+                document.getElementById('userPoints').textContent = currentUser.total_points;
+                document.getElementById('userLevel').textContent = currentUser.level;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            authToken = null;
+            currentUser = null;
+            showLogin();
+            showToast('Logged out successfully', 'success');
+        }
+
+        // Dashboard data loading
+        async function loadDashboardData() {
+            updateUserInfo();
+            
+            // Load all data in parallel
+            await Promise.all([
+                loadLeaderboard(),
+                loadLeads(),
+                loadAnalytics(),
+                loadMyStats(),
+                loadLeadTypeAnalytics(),
+                loadAgentSpecialization()
+            ]);
+            
+            // Initialize team management features
+            initializeTeamManagement();
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/gamification/leaderboard', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const leaderboard = await response.json();
+                    renderLeaderboard(leaderboard);
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            }
+        }
+
+        function renderLeaderboard(leaderboard) {
+            const container = document.getElementById('leaderboardContainer');
+            const fullContainer = document.getElementById('fullLeaderboard');
+            
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No data available</div>';
+                return;
+            }
+
+            const topLeaderboard = leaderboard.slice(0, 5);
+            const topHTML = `
+                <div class="leaderboard">
+                    <div class="leaderboard-header">🏆 Top Performers</div>
+                    ${topLeaderboard.map(user => `
+                        <div class="leaderboard-item ${user.user_id === currentUser?.id ? 'pulse' : ''}">
+                            <div class="leaderboard-rank">${user.rank}</div>
+                            <div class="leaderboard-info">
+                                <div class="leaderboard-name">${user.full_name}</div>
+                                <div class="leaderboard-role">@${user.username}</div>
+                            </div>
+                            <div class="leaderboard-points">
+                                <div>${user.total_points.toLocaleString()} pts</div>
+                                <div class="leaderboard-level">Level ${user.level}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const fullHTML = `
+                <div class="leaderboard">
+                    <div class="leaderboard-header">🏆 Full Rankings</div>
+                    ${leaderboard.map(user => `
+                        <div class="leaderboard-item ${user.user_id === currentUser?.id ? 'pulse' : ''}">
+                            <div class="leaderboard-rank">${user.rank}</div>
+                            <div class="leaderboard-info">
+                                <div class="leaderboard-name">${user.full_name}</div>
+                                <div class="leaderboard-role">@${user.username}</div>
+                            </div>
+                            <div class="leaderboard-points">
+                                <div>${user.total_points.toLocaleString()} pts</div>
+                                <div class="leaderboard-level">Level ${user.level}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.innerHTML = topHTML;
+            if (fullContainer) fullContainer.innerHTML = fullHTML;
+        }
+
+        async function loadLeads() {
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/leads?limit=100', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    allLeads = await response.json();
+                    renderLeads(allLeads);
+                    updateLeadStats();
+                }
+            } catch (error) {
+                console.error('Error loading leads:', error);
+            }
+        }
+
+        function renderLeads(leads) {
+            const tableBody = document.getElementById('leadsTableBody');
+            const cardsContainer = document.getElementById('leadsCards');
+            
+            if (leads.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No leads found</td></tr>';
+                cardsContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No leads found</div>';
+                return;
+            }
+
+            // Desktop table
+            const tableHTML = leads.map(lead => `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${lead.practice_name || 'N/A'}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">NPI: ${lead.npi || 'N/A'}</div>
+                    </td>
+                    <td>${lead.owner_name || 'N/A'}</td>
+                    <td>
+                        ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                    </td>
+                    <td>${lead.city || ''}, ${lead.state || ''}</td>
+                    <td><strong>${lead.score}</strong></td>
+                    <td><span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority}</span></td>
+                    <td><span class="status-badge status-${lead.status}">${lead.status.replace('_', ' ')}</span></td>
+                    <td>
+                        <div class="quick-actions">
+                            <button class="btn-icon" onclick="callLead(${lead.id})" title="Call">📞</button>
+                            <button class="btn-icon" onclick="emailLead(${lead.id})" title="Email">📧</button>
+                            <button class="btn-icon" onclick="viewLead(${lead.id})" title="View">👁️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Mobile cards
+            const cardsHTML = leads.map(lead => `
+                <div class="lead-card">
+                    <div class="lead-card-header">
+                        <div class="lead-card-name">${lead.practice_name || 'N/A'}</div>
+                        <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority}</span>
+                    </div>
+                    <div class="lead-card-info">
+                        <div>
+                            <div class="lead-card-label">Owner</div>
+                            <div class="lead-card-value">${lead.owner_name || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Phone</div>
+                            <div class="lead-card-value">
+                                ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Location</div>
+                            <div class="lead-card-value">${lead.city || ''}, ${lead.state || ''}</div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Score</div>
+                            <div class="lead-card-value"><strong>${lead.score}</strong></div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Status</div>
+                            <div class="lead-card-value">
+                                <span class="status-badge status-${lead.status}">${lead.status.replace('_', ' ')}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="lead-card-label">Actions</div>
+                            <div class="lead-card-value">
+                                <div class="quick-actions">
+                                    <button class="btn-icon" onclick="callLead(${lead.id})" title="Call">📞</button>
+                                    <button class="btn-icon" onclick="emailLead(${lead.id})" title="Email">📧</button>
+                                    <button class="btn-icon" onclick="viewLead(${lead.id})" title="View">👁️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            tableBody.innerHTML = tableHTML;
+            cardsContainer.innerHTML = cardsHTML;
+        }
+
+        function updateLeadStats() {
+            const totalLeads = allLeads.length;
+            const assignedLeads = allLeads.filter(lead => lead.assigned_user_id === currentUser?.id).length;
+            
+            document.getElementById('totalLeads').textContent = totalLeads;
+            document.getElementById('assignedLeads').textContent = assignedLeads;
+        }
+
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/analytics/dashboard', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const analytics = await response.json();
+                    renderAnalytics(analytics);
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        function renderAnalytics(analytics) {
+            const container = document.getElementById('analyticsContainer');
+            const quickStats = document.getElementById('quickStats');
+            
+            const statusHTML = Object.entries(analytics.leads_by_status)
+                .filter(([status, count]) => count > 0)
+                .map(([status, count]) => `
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${status.replace('_', ' ').toUpperCase()}</span>
+                        <strong>${count}</strong>
+                    </div>
+                `).join('');
+
+            quickStats.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Conversion Rate</span>
+                        <strong style="color: var(--accent);">${analytics.conversion_rate}%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Total Leads</span>
+                        <strong>${analytics.total_leads}</strong>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">LEADS BY STATUS</h4>
+                    ${statusHTML}
+                </div>
+            `;
+
+            container.innerHTML = `
+                <div class="overview-grid">
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;">📊 Lead Distribution</h4>
+                        ${statusHTML || '<div style="color: var(--text-secondary);">No data available</div>'}
+                    </div>
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;">📈 Performance Metrics</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span>Conversion Rate</span>
+                            <strong style="color: var(--accent);">${analytics.conversion_rate}%</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Total Leads</span>
+                            <strong>${analytics.total_leads}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadMyStats() {
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/gamification/my-stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const stats = await response.json();
+                    renderMyStats(stats);
+                }
+            } catch (error) {
+                console.error('Error loading my stats:', error);
+            }
+        }
+
+        function renderMyStats(stats) {
+            const container = document.getElementById('myPerformance');
+            const achievementsContainer = document.getElementById('achievements');
+            
+            container.innerHTML = `
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">#${stats.rank}</div>
+                    <div style="color: var(--text-secondary);">Your Rank</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">${stats.total_points}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Points</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--warning);">Level ${stats.level}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">Current Level</div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Recent Activities (7 days)</span>
+                        <strong>${stats.recent_activities}</strong>
+                    </div>
+                </div>
+            `;
+
+            achievementsContainer.innerHTML = `
+                <div>
+                    <h4 style="margin-bottom: 1rem;">🏅 Your Badges</h4>
+                    ${stats.badges && stats.badges.length > 0 ? 
+                        stats.badges.map(badge => `
+                            <div style="display: flex; align-items: center; padding: 0.5rem; background: var(--background); border-radius: var(--radius); margin-bottom: 0.5rem;">
+                                <span style="margin-right: 0.5rem;">🏅</span>
+                                <span>${badge}</span>
+                            </div>
+                        `).join('') : 
+                        '<div style="color: var(--text-secondary);">No badges earned yet. Keep working!</div>'
+                    }
+                </div>
+            `;
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Show tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+
+            currentTab = tabName;
+
+            // Load tab-specific data if needed
+            if (tabName === 'activities' && document.getElementById('activitiesContainer').innerHTML.includes('Loading')) {
+                loadActivities();
+            }
+        }
+
+        async function loadActivities() {
+            try {
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/activities?limit=20', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const activities = await response.json();
+                    renderActivities(activities);
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                document.getElementById('activitiesContainer').innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--error);">Failed to load activities</div>';
+            }
+        }
+
+        function renderActivities(activities) {
+            const container = document.getElementById('activitiesContainer');
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No activities found</div>';
+                return;
+            }
+
+            const activitiesHTML = activities.map(activity => `
+                <div style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border);">
+                    <div style="margin-right: 1rem; font-size: 1.5rem;">
+                        ${activity.activity_type === 'call' ? '📞' : 
+                          activity.activity_type === 'email' ? '📧' : 
+                          activity.activity_type === 'meeting' ? '🤝' : 
+                          activity.activity_type === 'demo' ? '🖥️' : '📝'}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${activity.subject}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            ${activity.description || 'No description'}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            ${new Date(activity.created_at).toLocaleString()}
+                        </div>
+                    </div>
+                    ${activity.outcome ? `
+                        <div style="text-align: right;">
+                            <span style="padding: 0.25rem 0.5rem; background: var(--accent); color: white; border-radius: 4px; font-size: 0.75rem;">
+                                ${activity.outcome}
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            container.innerHTML = activitiesHTML;
+        }
+
+        // Filter functions
+        function filterLeads() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            
+            let filteredLeads = allLeads;
+            
+            if (statusFilter) {
+                filteredLeads = filteredLeads.filter(lead => lead.status === statusFilter);
+            }
+            
+            if (priorityFilter) {
+                filteredLeads = filteredLeads.filter(lead => lead.priority === priorityFilter);
+            }
+            
+            renderLeads(filteredLeads);
+        }
+
+        // Refresh functions
+        async function refreshLeads() {
+            showToast('Refreshing leads...', 'success');
+            await loadLeads();
+        }
+
+        async function refreshActivities() {
+            showToast('Refreshing activities...', 'success');
+            await loadActivities();
+        }
+
+        async function refreshAnalytics() {
+            showToast('Refreshing analytics...', 'success');
+            await loadAnalytics();
+            await loadLeadTypeAnalytics();
+            await loadAgentSpecialization();
+        }
+
+        // Lead Type Analytics Functions
+        async function loadLeadTypeAnalytics() {
+            try {
+                const specialty = document.getElementById('specialty-filter').value;
+                const priority = document.getElementById('priority-filter').value;
+                
+                let url = 'http://YOUR-API-ENDPOINT.com/api/v1/analytics/lead-types?min_leads=3';
+                if (specialty) url += `&specialty=${specialty}`;
+                if (priority) url += `&priority=${priority}`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_token')}` }
+                });
+                
+                if (response.ok) {
+                    const leadTypeData = await response.json();
+                    renderLeadTypeAnalytics(leadTypeData);
+                } else {
+                    throw new Error('Failed to load lead type analytics');
+                }
+            } catch (error) {
+                console.error('Error loading lead type analytics:', error);
+                document.getElementById('leadTypeAnalyticsContainer').innerHTML = 
+                    '<div style="text-align: center; padding: 2rem; color: var(--error);">Failed to load lead type analytics</div>';
+            }
+        }
+
+        function renderLeadTypeAnalytics(leadTypeData) {
+            const container = document.getElementById('leadTypeAnalyticsContainer');
+            
+            if (!leadTypeData || leadTypeData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No lead type data available. Need more closed leads for analysis.</div>';
+                return;
+            }
+            
+            const html = `
+                <div class="lead-type-grid">
+                    ${leadTypeData.map(analytics => `
+                        <div class="lead-type-card">
+                            <div class="lead-type-header">
+                                <h4>${analytics.specialty_category}</h4>
+                                <div class="lead-type-priority">${analytics.priority_level} Priority</div>
+                            </div>
+                            <div class="lead-type-stats">
+                                <div class="lead-type-stat">
+                                    <div class="stat-value">${analytics.total_leads}</div>
+                                    <div class="stat-label">Total Leads</div>
+                                </div>
+                                <div class="lead-type-stat">
+                                    <div class="stat-value" style="color: var(--accent);">${(analytics.overall_conversion_rate * 100).toFixed(1)}%</div>
+                                    <div class="stat-label">Conversion Rate</div>
+                                </div>
+                                <div class="lead-type-stat">
+                                    <div class="stat-value">${(analytics.overall_contact_rate * 100).toFixed(1)}%</div>
+                                    <div class="stat-label">Contact Rate</div>
+                                </div>
+                            </div>
+                            ${analytics.best_agent_name ? `
+                                <div class="best-agent">
+                                    <strong>Top Performer:</strong> ${analytics.best_agent_name}
+                                    <span style="color: var(--accent);">(${(analytics.best_agent_conversion_rate * 100).toFixed(1)}%)</span>
+                                </div>
+                            ` : ''}
+                            <div class="lead-type-location">
+                                <small>${analytics.state_region} • ${analytics.practice_size} Practice • ${analytics.lead_source}</small>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        async function loadAgentSpecialization() {
+            try {
+                // Get current user's detailed performance if they're an agent
+                const currentUserId = getCurrentUserId(); // We'll need to implement this
+                
+                const response = await fetch(`http://YOUR-API-ENDPOINT.com/api/v1/analytics/agent-performance/${currentUserId}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_token')}` }
+                });
+                
+                if (response.ok) {
+                    const agentData = await response.json();
+                    renderAgentSpecialization(agentData);
+                } else {
+                    // For admins/managers, show all agents' top specializations
+                    await loadAllAgentsSpecialization();
+                }
+            } catch (error) {
+                console.error('Error loading agent specialization:', error);
+                document.getElementById('agentSpecializationContainer').innerHTML = 
+                    '<div style="text-align: center; padding: 2rem; color: var(--error);">Failed to load agent specialization data</div>';
+            }
+        }
+
+        async function loadAllAgentsSpecialization() {
+            try {
+                // For now, load lead type analytics and extract top performers
+                const response = await fetch('http://YOUR-API-ENDPOINT.com/api/v1/analytics/lead-types?min_leads=2', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_token')}` }
+                });
+                
+                if (response.ok) {
+                    const leadTypeData = await response.json();
+                    renderAllAgentsSpecialization(leadTypeData);
+                } else {
+                    throw new Error('Failed to load agent specialization data');
+                }
+            } catch (error) {
+                console.error('Error loading all agents specialization:', error);
+                document.getElementById('agentSpecializationContainer').innerHTML = 
+                    '<div style="text-align: center; padding: 2rem; color: var(--error);">Failed to load specialization data</div>';
+            }
+        }
+
+        function renderAgentSpecialization(agentData) {
+            const container = document.getElementById('agentSpecializationContainer');
+            
+            if (!agentData || agentData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No specialization data available yet. Complete more leads to see your performance by type.</div>';
+                return;
+            }
+            
+            // Sort by conversion rate
+            agentData.sort((a, b) => b.conversion_rate - a.conversion_rate);
+            
+            const html = `
+                <div class="agent-specialization-grid">
+                    <h4 style="grid-column: 1 / -1; margin-bottom: 1rem;">Your Performance by Lead Type</h4>
+                    ${agentData.map(perf => `
+                        <div class="specialization-card">
+                            <div class="specialization-header">
+                                <h5>${perf.specialty_category}</h5>
+                                <div class="specialization-badge ${perf.conversion_rate > 0.3 ? 'badge-success' : perf.conversion_rate > 0.15 ? 'badge-warning' : 'badge-neutral'}">${perf.priority_level}</div>
+                            </div>
+                            <div class="specialization-metrics">
+                                <div class="metric">
+                                    <span class="metric-value">${perf.total_assigned}</span>
+                                    <span class="metric-label">Assigned</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-value">${perf.total_contacted}</span>
+                                    <span class="metric-label">Contacted</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-value">${perf.total_closed_won}</span>
+                                    <span class="metric-label">Closed Won</span>
+                                </div>
+                                <div class="metric highlight">
+                                    <span class="metric-value">${(perf.conversion_rate * 100).toFixed(1)}%</span>
+                                    <span class="metric-label">Conversion</span>
+                                </div>
+                            </div>
+                            <div class="specialization-details">
+                                <small>${perf.state_region} • ${perf.practice_size} • ${perf.score_range} Score</small>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function renderAllAgentsSpecialization(leadTypeData) {
+            const container = document.getElementById('agentSpecializationContainer');
+            
+            // Extract unique agents and their best specializations
+            const agentSpecializations = new Map();
+            
+            leadTypeData.forEach(analytics => {
+                analytics.top_agents.forEach(agent => {
+                    const key = agent.agent_id;
+                    if (!agentSpecializations.has(key) || 
+                        agentSpecializations.get(key).conversion_rate < agent.conversion_rate) {
+                        agentSpecializations.set(key, {
+                            ...agent,
+                            best_specialty: analytics.specialty_category,
+                            best_conversion: agent.conversion_rate
+                        });
+                    }
+                });
+            });
+            
+            const topAgents = Array.from(agentSpecializations.values())
+                .sort((a, b) => b.best_conversion - a.best_conversion);
+            
+            if (topAgents.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No agent specialization data available yet.</div>';
+                return;
+            }
+            
+            const html = `
+                <div class="agent-leaderboard">
+                    <h4 style="margin-bottom: 1rem;">Top Performing Agents by Specialty</h4>
+                    ${topAgents.slice(0, 10).map((agent, index) => `
+                        <div class="agent-specialty-row">
+                            <div class="agent-rank">#${index + 1}</div>
+                            <div class="agent-info">
+                                <div class="agent-name">${agent.agent_name}</div>
+                                <div class="agent-specialty">Best at: ${agent.best_specialty}</div>
+                            </div>
+                            <div class="agent-metrics">
+                                <div class="agent-conversion">${(agent.best_conversion * 100).toFixed(1)}%</div>
+                                <div class="agent-stats">${agent.total_closed_won}/${agent.total_assigned} closed</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function getCurrentUserId() {
+            // Extract user ID from current user data
+            return currentUser ? currentUser.id : 1; // Fallback to 1 for demo
+        }
+
+        // Lead actions
+        function callLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead && lead.practice_phone) {
+                window.open(`tel:${lead.practice_phone}`);
+                showToast(`Calling ${lead.practice_name}...`, 'success');
+            } else {
+                showToast('No phone number available', 'error');
+            }
+        }
+
+        function emailLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            showToast('Email functionality coming soon!', 'success');
+        }
+
+        function viewLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead) {
+                showLeadDetailModal(lead);
+            }
+        }
+
+        function showLeadDetailModal(lead) {
+            // Create modal overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'modal-overlay';
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    document.body.removeChild(modalOverlay);
+                }
+            };
+
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content lead-detail-modal';
+            
+            // Format dates
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            };
+
+            const formatShortDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString();
+            };
+
+            // Format scoring breakdown
+            const formatScoringBreakdown = (breakdown) => {
+                if (!breakdown || typeof breakdown !== 'object') return 'N/A';
+                return Object.entries(breakdown)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(', ');
+            };
+
+            // Format previous agents
+            const formatPreviousAgents = (agents) => {
+                if (!agents || !Array.isArray(agents) || agents.length === 0) return 'None';
+                return agents.join(', ');
+            };
+
+            modalContent.innerHTML = `
+                <div class="lead-detail-header">
+                    <div class="lead-detail-title">
+                        <h2>📋 Lead Details</h2>
+                        <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority || 'N/A'}</span>
+                    </div>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                
+                <div class="lead-detail-content">
+                    <!-- Provider Identity Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-id-card"></i> Provider Identity</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>NPI:</label>
+                                <span class="detail-value">${lead.npi || 'N/A'}</span>
+                                ${lead.npi ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.npi}', 'NPI')" title="Copy NPI">📋</button>` : ''}
+                            </div>
+                            <div class="detail-item">
+                                <label>EIN:</label>
+                                <span class="detail-value">${lead.ein || 'N/A'}</span>
+                                ${lead.ein ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.ein}', 'EIN')" title="Copy EIN">📋</button>` : ''}
+                            </div>
+                            <div class="detail-item">
+                                <label>Entity Type:</label>
+                                <span class="detail-value">${lead.entity_type || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Sole Proprietor:</label>
+                                <span class="detail-value">${lead.is_sole_proprietor === 'True' ? 'Yes' : lead.is_sole_proprietor === 'False' ? 'No' : 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Business Details Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-building"></i> Business Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Practice Name:</label>
+                                <span class="detail-value">${lead.practice_name || 'N/A'}</span>
+                                ${lead.practice_name ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_name}', 'Practice Name')" title="Copy">📋</button>` : ''}
+                            </div>
+                            <div class="detail-item">
+                                <label>Owner/Contact:</label>
+                                <span class="detail-value">${lead.owner_name || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Provider Count:</label>
+                                <span class="detail-value">${lead.providers || 1} provider${(lead.providers || 1) > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Category:</label>
+                                <span class="detail-value">${lead.category || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <label>Specialties:</label>
+                                <span class="detail-value">${lead.specialties || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-phone"></i> Contact Information</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Practice Phone:</label>
+                                <span class="detail-value">
+                                    ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
+                                </span>
+                                ${lead.practice_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_phone}', 'Practice Phone')" title="Copy">📋</button>` : ''}
+                            </div>
+                            <div class="detail-item">
+                                <label>Owner Phone:</label>
+                                <span class="detail-value">
+                                    ${lead.owner_phone ? `<a href="tel:${lead.owner_phone}" class="phone-link">${lead.owner_phone}</a>` : 'N/A'}
+                                </span>
+                                ${lead.owner_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.owner_phone}', 'Owner Phone')" title="Copy">📋</button>` : ''}
+                            </div>
+                            <div class="detail-item full-width">
+                                <label>Full Address:</label>
+                                <span class="detail-value">${lead.address || `${lead.city || ''}, ${lead.state || ''} ${lead.zip_code || ''}`.trim() || 'N/A'}</span>
+                                ${(lead.address || lead.city) ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.address || `${lead.city}, ${lead.state} ${lead.zip_code}`}', 'Address')" title="Copy">📋</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scoring & Priority Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-chart-line"></i> Scoring & Priority</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Overall Score:</label>
+                                <span class="detail-value score-highlight">${lead.score || 0}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Priority Level:</label>
+                                <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Medicare Allograft Score:</label>
+                                <span class="detail-value">${lead.medicare_allograft_score || 0}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Overlooked Opportunity Score:</label>
+                                <span class="detail-value">${lead.overlooked_opportunity_score || 0}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Rural Verified Score:</label>
+                                <span class="detail-value">${lead.rural_verified_score || 0}</span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <label>Scoring Breakdown:</label>
+                                <span class="detail-value">${formatScoringBreakdown(lead.scoring_breakdown)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CRM Status & Assignment Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-tasks"></i> CRM Status & Assignment</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Status:</label>
+                                <span class="status-badge status-${lead.status}">${lead.status?.replace('_', ' ') || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Source:</label>
+                                <span class="detail-value">${lead.source || 'N/A'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Assigned Agent ID:</label>
+                                <span class="detail-value">${lead.assigned_user_id || 'Unassigned'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Assigned Date:</label>
+                                <span class="detail-value">${formatShortDate(lead.assigned_at)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Contact Attempts:</label>
+                                <span class="detail-value">${lead.contact_attempts || 0}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Times Recycled:</label>
+                                <span class="detail-value">${lead.times_recycled || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity & Follow-up Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-calendar-alt"></i> Activity & Follow-up</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Last Contact:</label>
+                                <span class="detail-value">${formatDate(lead.last_contact_date)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Next Follow-up:</label>
+                                <span class="detail-value">${formatDate(lead.next_follow_up)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Recycling Eligible:</label>
+                                <span class="detail-value">${formatDate(lead.recycling_eligible_at)}</span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <label>Previous Agents:</label>
+                                <span class="detail-value">${formatPreviousAgents(lead.previous_agents)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Section -->
+                    <div class="detail-section">
+                        <h3><i class="fas fa-info-circle"></i> Metadata</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Created:</label>
+                                <span class="detail-value">${formatDate(lead.created_at)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Last Updated:</label>
+                                <span class="detail-value">${formatDate(lead.updated_at)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Lead ID:</label>
+                                <span class="detail-value">${lead.id}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lead-detail-actions">
+                    <button class="btn btn-primary" onclick="callLead(${lead.id}); this.closest('.modal-overlay').remove();">
+                        📞 Call Lead
+                    </button>
+                    <button class="btn btn-secondary" onclick="emailLead(${lead.id}); this.closest('.modal-overlay').remove();">
+                        📧 Email Lead
+                    </button>
+                    <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove();">
+                        Close
+                    </button>
+                </div>
+            `;
+
+            modalOverlay.appendChild(modalContent);
+            document.body.appendChild(modalOverlay);
+        }
+
+        function copyToClipboard(text, fieldName) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`${fieldName} copied to clipboard!`, 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast(`${fieldName} copied to clipboard!`, 'success');
+            });
+        }
+
+        // Utility functions
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // PWA functionality
+        function showInstallPrompt() {
+            if (deferredPrompt && !localStorage.getItem('installPromptDismissed')) {
+                document.getElementById('installPrompt').classList.add('show');
+            }
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    showToast('App installed successfully!', 'success');
+                }
+                
+                deferredPrompt = null;
+                document.getElementById('installPrompt').classList.remove('show');
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.remove('show');
+            localStorage.setItem('installPromptDismissed', 'true');
+        }
+
+        // Auto-refresh data every 5 minutes
+        setInterval(() => {
+            if (authToken && currentTab === 'overview') {
+                loadDashboardData();
+            }
+        }, 5 * 60 * 1000);
+
+        // Handle window resize for responsive design
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 480) {
+                document.getElementById('leadsTable').style.display = 'none';
+                document.getElementById('leadsCards').style.display = 'block';
+            } else {
+                document.getElementById('leadsTable').style.display = 'table';
+                document.getElementById('leadsCards').style.display = 'none';
+            }
+        });
+
+        // Initialize responsive design
+        if (window.innerWidth <= 480) {
+            document.getElementById('leadsTable').style.display = 'none';
+            document.getElementById('leadsCards').style.display = 'block';
+        }
+
+        // ================================
+        // Team Management Functions
+        // ================================
+
+        // Show/hide team tab based on user role
+        function initializeTeamManagement() {
+            if (currentUser && (currentUser.role === 'manager' || currentUser.role === 'admin')) {
+                document.getElementById('team-tab').style.display = 'block';
+                
+                // Show admin-only buttons for admins
+                if (currentUser.role === 'admin') {
+                    document.getElementById('unassigned-btn').style.display = 'inline-flex';
+                    // Allow admins to create any role
+                    document.getElementById('newRole').innerHTML = `
+                        <option value="agent">Agent</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    `;
+                } else {
+                    // Managers can only create agents
+                    document.getElementById('newRole').innerHTML = `
+                        <option value="agent">Agent</option>
+                    `;
+                }
+            }
+        }
+
+        // Refresh team data
+        async function refreshTeamData() {
+            showToast('Refreshing team data...', 'info');
+            if (currentUser.role === 'manager') {
+                await showTeamOverview();
+            } else if (currentUser.role === 'admin') {
+                await loadAllManagers();
+            }
+        }
+
+        // Show create user modal
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'flex';
+            
+            // Load managers for admin
+            if (currentUser.role === 'admin') {
+                loadManagersForDropdown();
+            }
+            
+            // Handle role change
+            document.getElementById('newRole').onchange = function() {
+                const role = this.value;
+                const managerGroup = document.getElementById('managerGroup');
+                
+                if (role === 'agent' && currentUser.role === 'admin') {
+                    managerGroup.style.display = 'block';
+                } else {
+                    managerGroup.style.display = 'none';
+                }
+            };
+        }
+
+        // Close create user modal
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            document.getElementById('createUserForm').reset();
+        }
+
+        // Load managers for dropdown
+        async function loadManagersForDropdown() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/all-managers`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const managers = await response.json();
+                    const dropdown = document.getElementById('newManagerId');
+                    dropdown.innerHTML = '<option value="">Select Manager...</option>';
+                    
+                    managers.forEach(manager => {
+                        dropdown.innerHTML += `<option value="${manager.manager_id}">${manager.manager_name}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load managers:', error);
+            }
+        }
+
+        // Create new user
+        async function createUser() {
+            const form = document.getElementById('createUserForm');
+            const formData = new FormData(form);
+            
+            const userData = {
+                username: document.getElementById('newUsername').value,
+                email: document.getElementById('newEmail').value,
+                full_name: document.getElementById('newFullName').value,
+                password: document.getElementById('newPassword').value,
+                role: document.getElementById('newRole').value,
+                manager_id: document.getElementById('newManagerId').value || null
+            };
+            
+            // Validation
+            if (!userData.username || !userData.email || !userData.full_name || !userData.password) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            if (userData.role === 'agent' && currentUser.role === 'admin' && !userData.manager_id) {
+                showToast('Please select a manager for this agent', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/create-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    const newUser = await response.json();
+                    showToast(`User ${newUser.username} created successfully!`, 'success');
+                    closeCreateUserModal();
+                    refreshTeamData();
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || 'Failed to create user', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to create user:', error);
+                showToast('Failed to create user', 'error');
+            }
+        }
+
+        // Show team overview for managers
+        async function showTeamOverview() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/my-team`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const teamData = await response.json();
+                    renderTeamOverview(teamData);
+                } else {
+                    showToast('Failed to load team data', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load team:', error);
+                showToast('Failed to load team data', 'error');
+            }
+        }
+
+        // Render team overview
+        function renderTeamOverview(teamData) {
+            const container = document.getElementById('teamOverviewContainer');
+            
+            if (teamData.team_members.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <h3>No Team Members Yet</h3>
+                        <p>Use the "Add Team Member" button above to start building your team!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const stats = teamData.team_stats;
+            
+            container.innerHTML = `
+                <div class="team-overview">
+                    <!-- Team Stats -->
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-header">
+                            <h3 class="card-title">Team Statistics</h3>
+                        </div>
+                        <div class="team-stats">
+                            <div class="team-stat">
+                                <div class="value">${stats.team_size}</div>
+                                <div class="label">Team Size</div>
+                            </div>
+                            <div class="team-stat">
+                                <div class="value">${stats.total_deals_closed}</div>
+                                <div class="label">Total Deals</div>
+                            </div>
+                            <div class="team-stat">
+                                <div class="value">${stats.average_percentile}%</div>
+                                <div class="label">Avg Percentile</div>
+                            </div>
+                            <div class="team-stat">
+                                <div class="value">${stats.average_conversion_rate}%</div>
+                                <div class="label">Avg Conversion</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Team Members -->
+                    <div class="team-grid">
+                        ${teamData.team_members.map(member => `
+                            <div class="team-member-card">
+                                <div class="team-member-header">
+                                    <div class="team-member-avatar">
+                                        ${member.full_name ? member.full_name.charAt(0).toUpperCase() : member.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div class="team-member-info">
+                                        <h4>${member.full_name || member.username}</h4>
+                                        <div class="role">${member.role}</div>
+                                    </div>
+                                </div>
+                                <div class="team-stats">
+                                    <div class="team-stat">
+                                        <div class="value">${member.current_percentile.toFixed(1)}%</div>
+                                        <div class="label">Percentile</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">#${member.current_rank}</div>
+                                        <div class="label">Rank</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">${member.deals_closed}</div>
+                                        <div class="label">Deals Closed</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">${member.is_active ? '✅' : '❌'}</div>
+                                        <div class="label">Status</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                    Joined: ${new Date(member.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show unassigned agents (admin only)
+        async function showUnassignedAgents() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/unassigned-agents`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const agents = await response.json();
+                    renderUnassignedAgents(agents);
+                } else {
+                    showToast('Failed to load unassigned agents', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load unassigned agents:', error);
+                showToast('Failed to load unassigned agents', 'error');
+            }
+        }
+
+        // Render unassigned agents
+        function renderUnassignedAgents(agents) {
+            const container = document.getElementById('teamOverviewContainer');
+            
+            if (agents.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <h3>All Agents Assigned</h3>
+                        <p>All agents are currently assigned to managers.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="unassigned-agents">
+                    <h3>Unassigned Agents (${agents.length})</h3>
+                    <div class="team-grid">
+                        ${agents.map(agent => `
+                            <div class="team-member-card">
+                                <div class="team-member-header">
+                                    <div class="team-member-avatar">
+                                        ${agent.full_name ? agent.full_name.charAt(0).toUpperCase() : agent.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div class="team-member-info">
+                                        <h4>${agent.full_name || agent.username}</h4>
+                                        <div class="role">${agent.role}</div>
+                                    </div>
+                                </div>
+                                <div class="team-stats">
+                                    <div class="team-stat">
+                                        <div class="value">${agent.current_percentile.toFixed(1)}%</div>
+                                        <div class="label">Percentile</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">#${agent.current_rank}</div>
+                                        <div class="label">Rank</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 0.5rem;">
+                                    <select id="manager-select-${agent.id}" style="width: 100%; margin-bottom: 0.5rem;">
+                                        <option value="">Select Manager...</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-primary" onclick="assignAgentToManager(${agent.id})">
+                                        Assign to Manager
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            // Load managers for each dropdown
+            loadManagersForAssignment();
+        }
+
+        // Load managers for assignment dropdowns
+        async function loadManagersForAssignment() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/all-managers`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const managers = await response.json();
+                    
+                    // Populate all manager dropdowns
+                    document.querySelectorAll('[id^="manager-select-"]').forEach(dropdown => {
+                        dropdown.innerHTML = '<option value="">Select Manager...</option>';
+                        managers.forEach(manager => {
+                            dropdown.innerHTML += `<option value="${manager.manager_id}">${manager.manager_name}</option>`;
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load managers for assignment:', error);
+            }
+        }
+
+        // Assign agent to manager
+        async function assignAgentToManager(agentId) {
+            const dropdown = document.getElementById(`manager-select-${agentId}`);
+            const managerId = dropdown.value;
+            
+            if (!managerId) {
+                showToast('Please select a manager', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/assign-agent/${agentId}?manager_id=${managerId}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast(result.message, 'success');
+                    showUnassignedAgents(); // Refresh the list
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || 'Failed to assign agent', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to assign agent:', error);
+                showToast('Failed to assign agent', 'error');
+            }
+        }
+
+        // Load all managers (admin view)
+        async function loadAllManagers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/team/all-managers`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if (response.ok) {
+                    const managers = await response.json();
+                    renderAllManagers(managers);
+                } else {
+                    showToast('Failed to load managers', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load managers:', error);
+                showToast('Failed to load managers', 'error');
+            }
+        }
+
+        // Render all managers (admin view)
+        function renderAllManagers(managers) {
+            const container = document.getElementById('teamOverviewContainer');
+            
+            container.innerHTML = `
+                <div class="managers-overview">
+                    <h3>All Managers (${managers.length})</h3>
+                    <div class="team-grid">
+                        ${managers.map(manager => `
+                            <div class="team-member-card">
+                                <div class="team-member-header">
+                                    <div class="team-member-avatar">
+                                        ${manager.manager_name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div class="team-member-info">
+                                        <h4>${manager.manager_name}</h4>
+                                        <div class="role">Manager</div>
+                                    </div>
+                                </div>
+                                <div class="team-stats">
+                                    <div class="team-stat">
+                                        <div class="value">${manager.team_size}</div>
+                                        <div class="label">Team Size</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">${manager.team_deals_closed}</div>
+                                        <div class="label">Team Deals</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">${manager.avg_team_percentile}%</div>
+                                        <div class="label">Avg Percentile</div>
+                                    </div>
+                                    <div class="team-stat">
+                                        <div class="value">${manager.team_conversion_rate}%</div>
+                                        <div class="label">Conversion Rate</div>
+                                    </div>
+                                </div>
+                                ${manager.top_performer ? `
+                                    <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                        Top Performer: ${manager.top_performer.full_name || manager.top_performer.username}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html> 
