@@ -675,7 +675,7 @@
 
                 // Load real data with better error handling
                 try {
-                    const statsResponse = await fetch(`${API_BASE}/api/v1/analytics/dashboard`, {
+                    const statsResponse = await fetch(`${API_BASE}/api/v1/summary`, {
                         headers: { 
                             'Authorization': `Bearer ${authToken}`,
                             'Accept': 'application/json'
