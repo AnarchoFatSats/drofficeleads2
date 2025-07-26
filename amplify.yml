@@ -25,11 +25,11 @@ frontend:
     postBuild:
       commands:
         - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - echo "🔗 Backend: https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod"
-        - echo "✅ Authentication - JWT Token System"
-        - echo "✅ Real-time Data - Live API Integration"
-        - echo "✅ Security - HTTPS only, mixed content resolved"
-        - echo "✅ Mobile Ready - Responsive PWA design"
+        - 'echo "🔗 Backend URL updated to HTTPS endpoint"'
+        - 'echo "✅ Authentication - JWT Token System"'
+        - 'echo "✅ Real-time Data - Live API Integration"'
+        - 'echo "✅ Security - HTTPS only, mixed content resolved"'
+        - 'echo "✅ Mobile Ready - Responsive PWA design"'
   artifacts:
     baseDirectory: .
     files:
