@@ -50,17 +50,20 @@ from crm_shared_models import UserRole, LeadStatus, LeadPriority, ActivityType
 
 # Import your existing lead scoring systems
 sys.path.append('.')
+
+# Essential imports that must succeed
+from crm_lead_distribution import LeadDistributionService, run_lead_recycling_check, run_lead_redistribution
+from crm_monitoring import (
+    initialize_monitoring, MonitoringMiddleware, metrics_collector, 
+    apm_monitor, monitoring_dashboard, PROMETHEUS_AVAILABLE
+)
+
+# Optional lead scoring modules
 try:
     from medicare_allograft_lead_extractor import MedicareAllografLeadExtractor
     from rural_verified_scoring import RuralVerifiedScoring
     from overlooked_opportunity_scorer import OverlookedOpportunityScorer
     from recalibrated_scoring import RecalibratedScoring
-    # Import lead distribution services with late import to avoid circular dependency 
-    from crm_lead_distribution import LeadDistributionService, run_lead_recycling_check, run_lead_redistribution
-    from crm_monitoring import (
-        initialize_monitoring, MonitoringMiddleware, metrics_collector, 
-        apm_monitor, monitoring_dashboard, PROMETHEUS_AVAILABLE
-    )
 except ImportError:
     logging.warning("Some lead scoring modules not found - running in basic mode")
 
