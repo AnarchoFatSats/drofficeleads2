@@ -4,6 +4,68 @@ from datetime import datetime, timedelta
 import jwt
 import hashlib
 
+# Load real leads from hot_leads.json
+def load_real_leads():
+    """Load real scored leads from hot_leads.json"""
+    try:
+        # In Lambda, this file would be included in the deployment package
+        with open('hot_leads.json', 'r') as f:
+            leads_data = json.load(f)
+        
+        # Convert to backend format and take top 50 for performance
+        real_leads = []
+        for i, lead in enumerate(leads_data[:50]):  # Top 50 highest scored leads
+            real_leads.append({
+                "id": i + 1,
+                "company_name": lead.get("practice_name", "Unknown Practice"),
+                "contact_name": lead.get("owner_name", "Unknown Owner"),
+                "phone": lead.get("practice_phone", ""),
+                "email": f"contact@{lead.get('practice_name', 'unknown').lower().replace(' ', '')}.com",
+                "status": "new" if lead.get("priority") == "A+ Priority" else "contacted",
+                "priority": "high" if lead.get("priority") in ["A+ Priority", "A Priority"] else "medium",
+                "specialty": lead.get("category", "Unknown"),
+                "location": f"{lead.get('city', '')}, {lead.get('state', '')}",
+                "score": lead.get("score", 0),
+                "lead_priority": lead.get("priority", "C Priority"),
+                "specialties": lead.get("specialties", lead.get("category", "")),
+                "providers": lead.get("providers", 1),
+                "address": lead.get("address", ""),
+                "zip_code": lead.get("zip_code", ""),
+                "practice_phone": lead.get("practice_phone", ""),
+                "owner_phone": lead.get("owner_phone", "")
+            })
+        
+        print(f"✅ Loaded {len(real_leads)} real scored leads")
+        return real_leads
+        
+    except Exception as e:
+        print(f"⚠️ Could not load real leads: {e}")
+        # Fallback to demo leads
+        return [
+            {
+                "id": 1,
+                "company_name": "Rural Health Clinic",
+                "contact_name": "Dr. Smith",
+                "phone": "555-0123",
+                "email": "dr.smith@ruralhealthclinic.com",
+                "status": "new",
+                "priority": "high",
+                "specialty": "Primary Care",
+                "location": "Rural County, TX"
+            },
+            {
+                "id": 2,
+                "company_name": "Mountain View Medical",
+                "contact_name": "Dr. Johnson", 
+                "phone": "555-0456",
+                "email": "johnson@mountainviewmed.com",
+                "status": "contacted",
+                "priority": "medium",
+                "specialty": "Podiatry",
+                "location": "Mountain View, CO"
+            }
+        ]
+
 # In-memory storage for demo (replace with RDS in production)
 USERS = {
     "admin": {
@@ -14,30 +76,8 @@ USERS = {
     }
 }
 
-LEADS = [
-    {
-        "id": 1,
-        "company_name": "Rural Health Clinic",
-        "contact_name": "Dr. Smith",
-        "phone": "555-0123",
-        "email": "dr.smith@ruralhealthclinic.com",
-        "status": "new",
-        "priority": "high",
-        "specialty": "Primary Care",
-        "location": "Rural County, TX"
-    },
-    {
-        "id": 2,
-        "company_name": "Mountain View Medical",
-        "contact_name": "Dr. Johnson",
-        "phone": "555-0456",
-        "email": "johnson@mountainviewmed.com",
-        "status": "contacted",
-        "priority": "medium",
-        "specialty": "Podiatry",
-        "location": "Mountain View, CO"
-    }
-]
+# Load real leads instead of hardcoded demo leads
+LEADS = load_real_leads()
 
 SECRET_KEY = "cura-genesis-crm-super-secret-key-lambda-2025"
 
