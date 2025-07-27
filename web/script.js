@@ -8,28 +8,266 @@ let currentCityIndex = -1;
 let leadDataStorage = {}; // Store disposition and notes
 let expandedLeads = new Set(); // Track which leads are expanded
 
+// Authentication state
+let authToken = null;
+let currentUser = null;
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     hideLoadingOverlay();
-    loadData();
+    initializeAuth();
     setupEventListeners();
 });
 
+        main
 // Load data from backend API
+
+// Authentication functions
+function initializeAuth() {
+    authToken = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    if (authToken && userData) {
+        try {
+            currentUser = JSON.parse(userData);
+            showDashboard();
+            loadData();
+        } catch (e) {
+            console.error('Invalid user data:', e);
+            showLogin();
+        }
+    } else {
+        showLogin();
+    }
+}
+
+function showLogin() {
+    document.body.innerHTML = `
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2><i class="fas fa-user-shield"></i> CRM Login</h2>
+                    <p>Please enter your credentials</p>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" value="admin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" value="admin123" required>
+                    </div>
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+        <style>
+            .login-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            .login-card {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                width: 100%;
+                max-width: 400px;
+            }
+            .login-header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            .login-header h2 {
+                color: #333;
+                margin: 0 0 0.5rem 0;
+            }
+            .login-header p {
+                color: #666;
+                margin: 0;
+            }
+            .form-group {
+                margin-bottom: 1rem;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                color: #333;
+                font-weight: 500;
+            }
+            .form-group input {
+                width: 100%;
+                padding: 0.75rem;
+                border: 2px solid #ddd;
+                border-radius: 6px;
+                font-size: 1rem;
+                transition: border-color 0.3s;
+            }
+            .form-group input:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            .login-btn {
+                width: 100%;
+                padding: 0.75rem;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 1rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .login-btn:hover {
+                background: #5a67d8;
+            }
+            .error-message {
+                color: #e53e3e;
+                text-align: center;
+                margin-top: 1rem;
+                padding: 0.5rem;
+                background: #fed7d7;
+                border-radius: 4px;
+            }
+        </style>
+    `;
+    
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('loginError');
+    
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LOGIN}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Invalid credentials');
+        }
+        
+        const data = await response.json();
+        
+        // Store authentication data
+        authToken = data.access_token;
+        currentUser = data.user;
+        localStorage.setItem('auth_token', authToken);
+        localStorage.setItem('user_data', JSON.stringify(currentUser));
+        
+        // Show dashboard
+        showDashboard();
+        loadData();
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = 'Login failed. Please check your credentials.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+function showDashboard() {
+    // If we're already on the dashboard, just update the user info
+    if (document.querySelector('.header')) {
+        updateUserInfo();
+        return;
+    }
+    // Otherwise reload to get the full dashboard
+    window.location.reload();
+}
+
+function updateUserInfo() {
+    if (currentUser) {
+        const usernameDisplay = document.getElementById('username-display');
+        if (usernameDisplay) {
+            usernameDisplay.textContent = currentUser.username || 'User';
+        }
+    }
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    showLogin();
+}
+
+// API helper function
+async function apiCall(endpoint, options = {}) {
+    const url = `${CONFIG.API_BASE_URL}${endpoint}`;
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+        
+        if (response.status === 401) {
+            logout();
+            throw new Error('Authentication required');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
+}
+
+// Load data from API instead of JSON files
+        main
 async function loadData() {
     try {
         showLoadingOverlay();
         
+        main
         // Load all data from backend API
         const [leadsResponse, summaryResponse] = await Promise.all([
             fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.HOT_LEADS}`),
             fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SUMMARY}`)
+
+        // Load all data from API endpoints
+        const [leadsData, summaryData] = await Promise.all([
+            apiCall(CONFIG.ENDPOINTS.LEADS),
+            apiCall(CONFIG.ENDPOINTS.SUMMARY)
+        main
         ]);
 
-        allLeads = await leadsResponse.json();
-        summaryData = await summaryResponse.json();
+        allLeads = leadsData.leads || [];
+        summaryData = summaryData;
         
         // Initialize the UI
+        updateUserInfo(); // Update user display
         updateDashboardStats();
         populateFilterDropdowns();
         filteredLeads = [...allLeads];

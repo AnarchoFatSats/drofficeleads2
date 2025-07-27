@@ -50,17 +50,20 @@ from crm_shared_models import UserRole, LeadStatus, LeadPriority, ActivityType
 
 # Import your existing lead scoring systems
 sys.path.append('.')
+
+# Essential imports that must succeed
+from crm_lead_distribution import LeadDistributionService, run_lead_recycling_check, run_lead_redistribution
+from crm_monitoring import (
+    initialize_monitoring, MonitoringMiddleware, metrics_collector, 
+    apm_monitor, monitoring_dashboard, PROMETHEUS_AVAILABLE
+)
+
+# Optional lead scoring modules
 try:
     from medicare_allograft_lead_extractor import MedicareAllografLeadExtractor
     from rural_verified_scoring import RuralVerifiedScoring
     from overlooked_opportunity_scorer import OverlookedOpportunityScorer
     from recalibrated_scoring import RecalibratedScoring
-    # Import lead distribution services with late import to avoid circular dependency 
-    # from crm_lead_distribution import LeadDistributionService, run_lead_recycling_check, run_lead_redistribution
-    from crm_monitoring import (
-        initialize_monitoring, MonitoringMiddleware, metrics_collector, 
-        apm_monitor, monitoring_dashboard, PROMETHEUS_AVAILABLE
-    )
 except ImportError:
     logging.warning("Some lead scoring modules not found - running in basic mode")
 
@@ -1653,7 +1656,6 @@ async def create_lead(
     
     # Auto-assign to lead distribution if enabled
     try:
-        from crm_lead_distribution import LeadDistributionService
         distribution_service = LeadDistributionService(db)
         available_leads = distribution_service.get_available_leads(1)
         if new_lead in available_leads:
@@ -2445,7 +2447,7 @@ async def create_team_member(
             raise HTTPException(status_code=400, detail="Specified user is not a manager")
     
     # Create new user
-    hashed_password = get_password_hash(user_data.password)
+    hashed_password = AuthService.get_password_hash(user_data.password)
     new_user = User(
         username=user_data.username,
         email=user_data.email,

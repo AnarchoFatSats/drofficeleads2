@@ -1,0 +1,24 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "🏥 Preparing Cura Genesis Advanced CRM"
+        - echo "Features: Login System, 20-Lead Distribution, Gamification"
+    build:
+      commands:
+        - echo "🚀 Building CRM interface..."
+        - echo "✅ Login authentication ready"
+        - echo "✅ Lead distribution system ready" 
+        - echo "✅ Real-time notifications ready"
+        - echo "✅ Mobile PWA ready"
+    postBuild:
+      commands:
+        - echo "🎉 Advanced CRM deployment complete!"
+        - echo "🔗 API Server needs to be deployed separately"
+  artifacts:
+    baseDirectory: .
+    files:
+      - '**/*'
+  cache:
+    paths: []

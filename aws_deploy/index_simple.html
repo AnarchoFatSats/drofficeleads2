@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cura Genesis CRM - Lead Management</title>
+    <!-- Bootstrap CSS for modal support -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // Configuration for Lambda API
+        const CONFIG = {
+            API_BASE_URL: 'https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod',
+            ENDPOINTS: {
+                LOGIN: '/api/v1/auth/login',
+                ME: '/api/v1/auth/me', 
+                LEADS: '/api/v1/leads',
+                HEALTH: '/health'
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <div class="header-text">
+                        <h1><i class="fas fa-gem"></i> Cura Genesis CRM</h1>
+                        <p class="subtitle">Lead Management System</p>
+                        <div class="strategy-badge">
+                            <i class="fas fa-bullseye"></i> Email + PTAN + EIN Ready
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <div class="user-info">
+                            <i class="fas fa-user"></i>
+                            <span id="username-display">Loading...</span>
+                        </div>
+                        <button onclick="logout()" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Stats -->
+        <section class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="total-leads">Loading...</div>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+            </div>
+            
+            <div class="stat-card hot">
+                <div class="stat-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="leads-with-email">Loading...</div>
+                    <div class="stat-label">📧 With Email</div>
+                </div>
+            </div>
+            
+            <div class="stat-card gold">
+                <div class="stat-icon">
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="docs-sent">Loading...</div>
+                    <div class="stat-label">📤 Docs Sent</div>
+                </div>
+            </div>
+            
+            <div class="stat-card perfect">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="a-plus-leads">Loading...</div>
+                    <div class="stat-label">A+ Priority</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lead Management Section -->
+        <section class="leads-section">
+            <div class="section-header">
+                <h2><i class="fas fa-table"></i> Lead Management</h2>
+                <div class="section-actions">
+                    <button onclick="refreshLeads()" class="btn btn-secondary">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Lead Actions -->
+            <div class="lead-actions mb-3">
+                <button id="editLeadBtn" class="btn btn-primary" onclick="editSelectedLead()" disabled>
+                    <i class="fas fa-edit"></i> Edit Lead
+                </button>
+                <button id="sendDocsBtn" class="btn btn-success" onclick="sendDocsForLead()" disabled>
+                    <i class="fas fa-file-export"></i> Send Docs
+                </button>
+            </div>
+
+            <!-- Leads Table -->
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Practice Name</th>
+                            <th>Owner</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>City, State</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>PTAN</th>
+                            <th>EIN/TIN</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTable">
+                        <tr>
+                            <td colspan="11" class="text-center">Loading leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Edit Lead Modal -->
+        <div class="modal fade" id="editLeadModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Lead</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editLeadForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Practice Name</label>
+                                    <input type="text" class="form-control" id="edit_practice_name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Owner Name</label>
+                                    <input type="text" class="form-control" id="edit_owner_name" required>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">📧 Practice Email</label>
+                                    <input type="email" class="form-control" id="edit_email" placeholder="info@practice.com">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Practice Phone</label>
+                                    <input type="tel" class="form-control" id="edit_practice_phone">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">PTAN</label>
+                                    <input type="text" class="form-control" id="edit_ptan" placeholder="Provider Transaction Access Number">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">EIN/TIN</label>
+                                    <input type="text" class="form-control" id="edit_ein_tin" placeholder="Employer ID / Tax ID">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-control" id="edit_status">
+                                        <option value="NEW">New</option>
+                                        <option value="CONTACTED">Contacted</option>
+                                        <option value="QUALIFIED">Qualified</option>
+                                        <option value="DOCS_SENT">Docs Sent</option>
+                                        <option value="CLOSED_WON">Closed Won</option>
+                                        <option value="CLOSED_LOST">Closed Lost</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveLeadChanges()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let currentUser = null;
+        let allLeads = [];
+        let selectedLeadId = null;
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthentication();
+        });
+
+        async function checkAuthentication() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Authentication failed');
+                }
+
+                currentUser = await response.json();
+                document.getElementById('username-display').textContent = currentUser.full_name;
+                loadLeads();
+                loadStats();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.HEALTH}`);
+                const stats = await response.json();
+                
+                if (stats.database_stats) {
+                    document.getElementById('total-leads').textContent = stats.database_stats.total_leads || '0';
+                    document.getElementById('leads-with-email').textContent = stats.database_stats.leads_with_email || '0';
+                    document.getElementById('docs-sent').textContent = stats.database_stats.docs_sent_count || '0';
+                    
+                    // Count A+ leads from loaded data
+                    const aPlusCount = allLeads.filter(lead => lead.priority === 'A+').length;
+                    document.getElementById('a-plus-leads').textContent = aPlusCount.toString();
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadLeads() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load leads');
+                }
+
+                allLeads = await response.json();
+                renderLeadsTable();
+                loadStats(); // Refresh stats after loading leads
+            } catch (error) {
+                console.error('Failed to load leads:', error);
+                alert('Failed to load leads');
+            }
+        }
+
+        function renderLeadsTable() {
+            const tbody = document.getElementById('leadsTable');
+            
+            if (allLeads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center">No leads found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allLeads.map(lead => `
+                <tr>
+                    <td>
+                        <input type="radio" name="selectedLead" value="${lead.id}" 
+                               onchange="selectLead(${lead.id})">
+                    </td>
+                    <td>${lead.practice_name || ''}</td>
+                    <td>${lead.owner_name || ''}</td>
+                    <td>
+                        <span class="${lead.email ? 'text-success' : 'text-muted'}">
+                            ${lead.email || 'No email'}
+                            ${lead.email ? '<i class="fas fa-check-circle ms-1"></i>' : '<i class="fas fa-exclamation-triangle ms-1"></i>'}
+                        </span>
+                    </td>
+                    <td>${lead.practice_phone || ''}</td>
+                    <td>${lead.city || ''}, ${lead.state || ''}</td>
+                    <td>
+                        <span class="badge ${getPriorityClass(lead.priority)}">
+                            ${lead.priority || 'N/A'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${getStatusClass(lead.status)}">
+                            ${lead.status || 'NEW'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="${lead.ptan ? 'text-success' : 'text-muted'}">
+                            ${lead.ptan || 'Not set'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="${lead.ein_tin ? 'text-success' : 'text-muted'}">
+                            ${lead.ein_tin || 'Not set'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="editLead(${lead.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${canSendDocs(lead) ? `
+                            <button class="btn btn-sm btn-outline-success ms-1" 
+                                    onclick="sendDocs(${lead.id})">
+                                <i class="fas fa-file-export"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getPriorityClass(priority) {
+            switch(priority) {
+                case 'A+': return 'bg-danger';
+                case 'A': return 'bg-warning';
+                case 'B': return 'bg-info';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'NEW': return 'bg-primary';
+                case 'CONTACTED': return 'bg-info';
+                case 'QUALIFIED': return 'bg-warning';
+                case 'DOCS_SENT': return 'bg-success';
+                case 'CLOSED_WON': return 'bg-success';
+                case 'CLOSED_LOST': return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function canSendDocs(lead) {
+            return lead.email && lead.ptan && lead.ein_tin && 
+                   ['CONTACTED', 'QUALIFIED'].includes(lead.status) &&
+                   !lead.docs_sent;
+        }
+
+        function selectLead(leadId) {
+            selectedLeadId = leadId;
+            document.getElementById('editLeadBtn').disabled = false;
+            
+            const lead = allLeads.find(l => l.id === leadId);
+            document.getElementById('sendDocsBtn').disabled = !canSendDocs(lead);
+        }
+
+        function editLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (!lead) return;
+
+            // Populate form
+            document.getElementById('edit_practice_name').value = lead.practice_name || '';
+            document.getElementById('edit_owner_name').value = lead.owner_name || '';
+            document.getElementById('edit_email').value = lead.email || '';
+            document.getElementById('edit_practice_phone').value = lead.practice_phone || '';
+            document.getElementById('edit_ptan').value = lead.ptan || '';
+            document.getElementById('edit_ein_tin').value = lead.ein_tin || '';
+            document.getElementById('edit_status').value = lead.status || 'NEW';
+
+            selectedLeadId = leadId;
+            new bootstrap.Modal(document.getElementById('editLeadModal')).show();
+        }
+
+        async function saveLeadChanges() {
+            if (!selectedLeadId) return;
+
+            const formData = {
+                practice_name: document.getElementById('edit_practice_name').value,
+                owner_name: document.getElementById('edit_owner_name').value,
+                email: document.getElementById('edit_email').value,
+                practice_phone: document.getElementById('edit_practice_phone').value,
+                ptan: document.getElementById('edit_ptan').value,
+                ein_tin: document.getElementById('edit_ein_tin').value,
+                status: document.getElementById('edit_status').value
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}/${selectedLeadId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update lead');
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('editLeadModal')).hide();
+                alert('Lead updated successfully!');
+                loadLeads(); // Refresh table
+            } catch (error) {
+                console.error('Failed to update lead:', error);
+                alert('Failed to update lead');
+            }
+        }
+
+        async function sendDocs(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (!canSendDocs(lead)) {
+                alert('Lead must have email, PTAN, and EIN/TIN before sending docs.');
+                return;
+            }
+
+            if (!confirm(`Send docs for ${lead.practice_name}?\n\nThis will:\n- Send lead data to external system\n- Mark lead as "DOCS_SENT"\n- Cannot be undone`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}/${leadId}/send-docs`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to send docs');
+                }
+
+                alert(`✅ Documents sent successfully!\n\nEmail: ${result.email_used}\nExternal ID: ${result.external_user_id}`);
+                loadLeads(); // Refresh table
+            } catch (error) {
+                console.error('Failed to send docs:', error);
+                alert(`❌ Failed to send docs: ${error.message}`);
+            }
+        }
+
+        function refreshLeads() {
+            loadLeads();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // Convenience functions for selected lead actions
+        function editSelectedLead() {
+            if (selectedLeadId) {
+                editLead(selectedLeadId);
+            }
+        }
+
+        function sendDocsForLead() {
+            if (selectedLeadId) {
+                sendDocs(selectedLeadId);
+            }
+        }
+    </script>
+</body>
+</html> 

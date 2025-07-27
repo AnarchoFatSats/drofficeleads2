@@ -389,7 +389,7 @@
         // Smart Backend URL Detection - FIXED: HTTP-only backend
         const BACKEND_URLS = [
             // Backend team deployed HTTP-only (no HTTPS endpoint available)
-            'http://cura-genesis-crm-alb-370496819.us-east-1.elb.amazonaws.com',
+            'https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod',
             'http://localhost:8001'
         ];
 
@@ -490,7 +490,7 @@
             if (!API_BASE || !authToken) return;
 
             try {
-                const response = await fetch(`${API_BASE}/auth/me`, {
+                const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
@@ -537,7 +537,7 @@
                 }
 
                 // Real API login - FIXED: Use JSON with username field
-                console.log(`🔐 Attempting login to: ${API_BASE}/auth/login`);
+                console.log(`🔐 Attempting login to: ${API_BASE}/api/v1/auth/login`);
                 
                 // Backend expects JSON with username/password (not email)
                 const loginData = {
@@ -547,7 +547,7 @@
                 
                 console.log('📤 Login data:', { username: loginData.username, password: '***' });
                 
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -675,7 +675,7 @@
 
                 // Load real data with better error handling
                 try {
-                    const statsResponse = await fetch(`${API_BASE}/api/v1/analytics/dashboard`, {
+                    const statsResponse = await fetch(`${API_BASE}/api/v1/summary`, {
                         headers: { 
                             'Authorization': `Bearer ${authToken}`,
                             'Accept': 'application/json'

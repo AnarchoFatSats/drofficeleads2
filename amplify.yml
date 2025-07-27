@@ -3,34 +3,16 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "🏥 Deploying Cura Genesis CRM Dashboard (Production Ready)"
-        - echo "Features Smart Backend Detection, Authentication, Demo Mode Fallback"
+        - echo Starting CRM build process
     build:
       commands:
-        - echo "🚀 Building production CRM with smart backend integration..."
-        # Deploy the production-ready CRM dashboard
-        - cp crm_production_dashboard.html index.html
-        # Copy supporting files
-        - cp manifest.json . || echo "manifest.json not found, skipping"
-        - mkdir -p web/data && cp web/data/*.json . 2>/dev/null || echo "Creating empty data files"
-        - echo '{"leads":[],"total":0}' > hot_leads.json
-        - echo '{"summary":{"total_leads":0}}' > summary.json
-        - echo '{"regions":[]}' > regions.json
-        - ls -la
-        - echo "✅ Production CRM Dashboard Ready with Smart Backend Detection"
-    postBuild:
-      commands:
-        - echo "🎉 Cura Genesis CRM Dashboard Deployed Successfully!"
-        - 'echo "🔗 Backend Detection - Automatic (Production + Local + Demo Mode)"'
-        - 'echo "✅ Authentication - JWT Token System"'
-        - 'echo "✅ Real-time Data - Live API Integration"'
-        - 'echo "✅ Fallback Mode - Demo data when backend unavailable"'
-        - 'echo "✅ Mobile Ready - Responsive PWA design"'
+        - echo Building CRM Frontend
+        - mkdir -p dist
+        - cp aws_deploy/index.html dist/
+        - cp aws_deploy/login.html dist/
+        - cp web/styles.css dist/
+        - cp manifest.json dist/
   artifacts:
-    baseDirectory: .
+    baseDirectory: dist
     files:
-      - 'index.html'
-      - 'manifest.json'
-      - '*.json'
-  cache:
-    paths: [] # Force fresh deployment with updated features
+      - '**/*'
