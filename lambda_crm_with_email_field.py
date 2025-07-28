@@ -419,7 +419,7 @@ def lambda_handler(event, context):
                 })
             }
         
-        # Get leads with full filtering (WITH EMAIL, PTAN/EIN FIELDS)
+        # Get all leads for current user (ROLE-BASED FILTERING)
         if path == '/api/v1/leads' and method == 'GET':
             auth_header = headers.get('Authorization', headers.get('authorization', ''))
             current_user = get_user_from_token(auth_header)
@@ -431,26 +431,86 @@ def lambda_handler(event, context):
                     'body': json.dumps({'detail': 'Not authenticated'})
                 }
             
-            leads = list(LEADS.values())
-            
             # Filter leads based on role
-            if current_user['role'] == 'agent':
-                leads = [l for l in leads if l.get('assigned_user_id') == current_user['id']]
-            
-            # Add notes and activities to leads
-            for lead in leads:
-                lead['notes'] = LEAD_NOTES.get(lead['id'], [])
-                lead['activities'] = [a for a in ACTIVITIES if a['lead_id'] == lead['id']]
-                
-                # Add assigned user info
-                if lead.get('assigned_user_id'):
-                    assigned_user = next((u for u in USERS.values() if u['id'] == lead['assigned_user_id']), None)
-                    lead['assigned_user'] = assigned_user['full_name'] if assigned_user else None
+            filtered_leads = []
+            for lead_id, lead in LEADS.items():
+                if current_user['role'] == 'agent':
+                    # Agents only see their assigned leads
+                    if lead.get('assigned_user_id') == current_user['id']:
+                        lead_with_notes = lead.copy()
+                        lead_with_notes['notes'] = LEAD_NOTES.get(lead_id, [])
+                        filtered_leads.append(lead_with_notes)
+                else:
+                    # Admins and managers see all leads
+                    lead_with_notes = lead.copy()
+                    lead_with_notes['notes'] = LEAD_NOTES.get(lead_id, [])
+                    filtered_leads.append(lead_with_notes)
             
             return {
                 'statusCode': 200,
                 'headers': response_headers,
-                'body': json.dumps(leads)
+                'body': json.dumps(filtered_leads)
+            }
+        
+        # 🚀 NEW: CREATE LEAD ENDPOINT (for automation system)
+        if path == '/api/v1/leads' and method == 'POST':
+            auth_header = headers.get('Authorization', headers.get('authorization', ''))
+            current_user = get_user_from_token(auth_header)
+            
+            if not current_user:
+                return {
+                    'statusCode': 401,
+                    'headers': response_headers,
+                    'body': json.dumps({'detail': 'Not authenticated'})
+                }
+            
+            # Only admins and managers can create leads
+            if current_user['role'] not in ['admin', 'manager']:
+                return {
+                    'statusCode': 403,
+                    'headers': response_headers,
+                    'body': json.dumps({'detail': 'Only admins and managers can create leads'})
+                }
+            
+            # Create new lead
+            new_lead = {
+                'id': NEXT_LEAD_ID,
+                'practice_name': body_data.get('practice_name', ''),
+                'owner_name': body_data.get('owner_name', ''),
+                'practice_phone': body_data.get('practice_phone', ''),
+                'owner_phone': body_data.get('owner_phone', ''),
+                'email': body_data.get('email', ''),
+                'address': body_data.get('address', ''),
+                'city': body_data.get('city', ''),
+                'state': body_data.get('state', ''),
+                'zip_code': body_data.get('zip_code', ''),
+                'npi': body_data.get('npi', ''),
+                'specialty': body_data.get('specialty', ''),
+                'score': body_data.get('score', 0),
+                'priority': body_data.get('priority', 'C'),
+                'status': body_data.get('status', 'NEW'),
+                'assigned_user_id': body_data.get('assigned_user_id'),
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat(),
+                'last_contact': None,
+                'next_follow_up': None,
+                'est_revenue': body_data.get('est_revenue', 0),
+                'tags': body_data.get('tags', []),
+                'ptan': '',
+                'ein_tin': '',
+                'docs_sent': False,
+                'docs_sent_date': None
+            }
+            
+            # Store new lead
+            LEADS[NEXT_LEAD_ID] = new_lead
+            LEAD_NOTES[NEXT_LEAD_ID] = []
+            NEXT_LEAD_ID += 1
+            
+            return {
+                'statusCode': 201,
+                'headers': response_headers,
+                'body': json.dumps(new_lead)
             }
         
         # Update lead status and information (NOW WITH EMAIL, PTAN/EIN SUPPORT)

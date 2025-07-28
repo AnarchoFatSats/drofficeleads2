@@ -1,0 +1,22 @@
+#!/bin/bash
+# Backend Team Quick Start Script
+
+echo "🚀 CRM Backend Team Handoff - Quick Start"
+echo "========================================"
+echo ""
+echo "📋 Priority Tasks:"
+echo "1. Fix Lambda authentication"
+echo "2. Add POST /api/v1/leads endpoint"
+echo "3. Test transfer script"
+echo ""
+echo "🔧 Key Files:"
+echo "- BACKEND_TEAM_HANDOFF_COMPLETE.md (START HERE)"
+echo "- lambda_function.py (needs fixing)"
+echo "- smart_lead_injection_api.py (ready to run)"
+echo ""
+echo "🧪 Test Lambda:"
+echo "curl -X POST https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod/api/v1/auth/login \"
+echo "  -H 'Content-Type: application/json' \"
+echo "  -d '{"username":"admin","password":"admin123"}'"
+echo ""
+echo "📞 Status: System is 90% ready - just need Lambda fixes!"

@@ -1,0 +1,18 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo Starting CRM build process
+    build:
+      commands:
+        - echo Building CRM Frontend
+        - mkdir -p dist
+        - cp aws_deploy/index.html dist/
+        - cp aws_deploy/login.html dist/
+        - cp web/styles.css dist/
+        - cp manifest.json dist/
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
