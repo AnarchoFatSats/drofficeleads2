@@ -263,6 +263,7 @@
 
         async function loadLeads() {
             try {
+                console.log('🔄 Loading leads from API...');
                 const token = localStorage.getItem('token');
                 const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}`, {
                     headers: {
@@ -275,17 +276,39 @@
                     throw new Error('Failed to load leads');
                 }
 
-                allLeads = await response.json();
+                const responseData = await response.json();
+                console.log('📊 API Response:', responseData);
+                
+                // Fix: Extract leads array from response
+                allLeads = responseData.leads || [];
+                console.log('✅ Processed leads:', allLeads.length);
+                
                 renderLeadsTable();
                 loadStats(); // Refresh stats after loading leads
             } catch (error) {
-                console.error('Failed to load leads:', error);
+                console.error('❌ Failed to load leads:', error);
+                allLeads = []; // Ensure allLeads is always an array
+                renderLeadsTable(); // Render empty state
                 alert('Failed to load leads');
             }
         }
 
         function renderLeadsTable() {
+            console.log('🔧 Rendering leads table...');
             const tbody = document.getElementById('leadsTable');
+            
+            if (!tbody) {
+                console.error('❌ leadsTable element not found!');
+                return;
+            }
+            
+            // Ensure allLeads is an array
+            if (!Array.isArray(allLeads)) {
+                console.error('❌ allLeads is not an array:', typeof allLeads, allLeads);
+                allLeads = [];
+            }
+            
+            console.log('📊 Rendering', allLeads.length, 'leads');
             
             if (allLeads.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="11" class="text-center">No leads found</td></tr>';
