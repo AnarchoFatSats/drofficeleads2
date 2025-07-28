@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Send Docs API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; }
+        textarea { width: 100%; height: 150px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Send Docs API</h1>
+        
+        <div class="step info">
+            <h3>Step 1: Login</h3>
+            <button onclick="testLogin()">Test Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <div class="step info">
+            <h3>Step 2: Get Leads</h3>
+            <button onclick="getLeads()">Get Leads</button>
+            <div id="leadsResult"></div>
+        </div>
+
+        <div class="step info">
+            <h3>Step 3: Send Docs</h3>
+            <label>Lead ID: <input type="number" id="leadId" value="3" min="1" max="20"></label>
+            <button onclick="testSendDocs()">Test Send Docs</button>
+            <div id="sendDocsResult"></div>
+        </div>
+
+        <div class="step info">
+            <h3>📊 Network Debug Info</h3>
+            <textarea id="debugLog" readonly placeholder="Debug information will appear here..."></textarea>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod';
+        let authToken = null;
+        let allLeads = [];
+
+        function log(message) {
+            const timestamp = new Date().toISOString();
+            const debugLog = document.getElementById('debugLog');
+            debugLog.value += `[${timestamp}] ${message}\n`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').value = '';
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'Testing login...';
+            
+            try {
+                log('🔐 Starting login test...');
+                
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                log(`Login response status: ${response.status}`);
+                log(`Login response headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
+
+                const data = await response.json();
+                log(`Login response data: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok) {
+                    authToken = data.access_token;
+                    resultDiv.innerHTML = `<div class="success">✅ Login successful!</div>`;
+                    log('✅ Login successful');
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login failed: ${data.detail}</div>`;
+                    log(`❌ Login failed: ${data.detail}`);
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`);
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        async function getLeads() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            const resultDiv = document.getElementById('leadsResult');
+            resultDiv.innerHTML = 'Getting leads...';
+            
+            try {
+                log('📋 Getting leads...');
+                
+                const response = await fetch(`${API_BASE}/api/v1/leads`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Leads response status: ${response.status}`);
+                
+                const data = await response.json();
+                log(`Leads response: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok) {
+                    allLeads = data.leads || [];
+                    const availableLeads = allLeads.filter(lead => 
+                        lead.email && !lead.docs_sent && ['new', 'contacted', 'qualified'].includes(lead.status?.toLowerCase())
+                    );
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Got ${allLeads.length} leads<br>
+                            📧 ${availableLeads.length} leads available for sending docs<br>
+                            <strong>Available leads:</strong><br>
+                            ${availableLeads.map(lead => 
+                                `ID: ${lead.id} - ${lead.practice_name} (${lead.email}) - Status: ${lead.status}`
+                            ).join('<br>')}
+                        </div>
+                    `;
+                    log(`✅ Got ${allLeads.length} leads, ${availableLeads.length} available for docs`);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed to get leads: ${data.detail}</div>`;
+                    log(`❌ Failed to get leads: ${data.detail}`);
+                }
+            } catch (error) {
+                log(`❌ Leads error: ${error.message}`);
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        async function testSendDocs() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            const leadId = document.getElementById('leadId').value;
+            const resultDiv = document.getElementById('sendDocsResult');
+            resultDiv.innerHTML = 'Sending docs...';
+            
+            try {
+                log(`📤 Testing send docs for lead ID: ${leadId}`);
+                
+                // First check if lead exists and is eligible
+                const lead = allLeads.find(l => l.id == leadId);
+                if (!lead) {
+                    log(`❌ Lead ${leadId} not found`);
+                    resultDiv.innerHTML = `<div class="error">❌ Lead ${leadId} not found. Please get leads first.</div>`;
+                    return;
+                }
+
+                log(`Lead info: ${JSON.stringify(lead, null, 2)}`);
+                
+                if (!lead.email) {
+                    log(`❌ Lead ${leadId} has no email`);
+                    resultDiv.innerHTML = `<div class="error">❌ Lead ${leadId} has no email address</div>`;
+                    return;
+                }
+
+                if (lead.docs_sent) {
+                    log(`❌ Docs already sent to lead ${leadId}`);
+                    resultDiv.innerHTML = `<div class="error">❌ Documents already sent to this lead</div>`;
+                    return;
+                }
+
+                // Prepare the request
+                const url = `${API_BASE}/api/v1/leads/${leadId}/send-docs`;
+                log(`Send docs URL: ${url}`);
+                
+                const requestOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                log(`Request options: ${JSON.stringify(requestOptions, null, 2)}`);
+
+                // Make the request
+                log('🚀 Making send docs request...');
+                const response = await fetch(url, requestOptions);
+                
+                log(`Send docs response status: ${response.status}`);
+                log(`Send docs response headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
+                
+                const result = await response.json();
+                log(`Send docs response data: ${JSON.stringify(result, null, 2)}`);
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Documents sent successfully!<br>
+                            📧 Email: ${result.email_used}<br>
+                            🆔 External ID: ${result.external_user_id}<br>
+                            📅 Sent at: ${result.sent_at}
+                        </div>
+                    `;
+                    log('✅ Send docs successful');
+                    
+                    // Refresh leads to see the update
+                    setTimeout(getLeads, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Send docs failed: ${result.detail || 'Unknown error'}</div>`;
+                    log(`❌ Send docs failed: ${result.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                log(`❌ Send docs error: ${error.message}`);
+                log(`Error stack: ${error.stack}`);
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize
+        log('🔍 Debug page loaded. Ready to test send docs API.');
+        log(`Using API base: ${API_BASE}`);
+    </script>
+</body>
+</html> 

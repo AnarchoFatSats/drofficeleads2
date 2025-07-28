@@ -921,7 +921,7 @@ def lambda_handler(event, context):
             return create_response(200, {
                 "message": "Documents sent successfully",
                 "email_used": lead['email'],
-                "external_user_id": f"EXT_{lead['id']}_{int(datetime.now().timestamp())}",
+                "external_user_id": f"EXT_{lead['id']}_{int(datetime.utcnow().timestamp())}",
                 "sent_at": datetime.utcnow().isoformat()
             })
         
