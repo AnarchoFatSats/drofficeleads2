@@ -631,7 +631,7 @@
 
         // Data loading functions
         async function loadData() {
-            console.log('📊 Loading data...');
+                            // Loading data...
             
             try {
                 const token = localStorage.getItem('token');
@@ -653,14 +653,13 @@
                 const leadsData = await leadsResponse.json();
                 const summaryResponseData = await summaryResponse.json();
 
-                console.log('📊 API Leads Response:', leadsData);
-                console.log('📊 API Summary Response:', summaryResponseData);
+                // API responses loaded successfully
 
                 // Extract leads array from response
                 allLeads = leadsData.leads || [];
                 summaryData = summaryResponseData;
 
-                console.log('✅ Processed leads:', allLeads.length);
+                // Processed leads successfully
 
                 // Update UI
                 updateDashboardStats();
@@ -970,7 +969,7 @@
                     Search Results (${result.total} of ${result.searched_in} leads)
                 `;
                 
-                console.log(`✅ Search found ${result.total} results for "${searchQuery}"`);
+                // Search completed successfully
 
             } catch (error) {
                 console.error('❌ Search failed:', error);
@@ -990,7 +989,7 @@
                 Lead Management Center
             `;
             
-            console.log('✅ Search cleared, showing all leads');
+            // Search cleared successfully
         }
 
         function handleSearchKeyPress(event) {
@@ -1123,7 +1122,7 @@
                 closeCreateUserModal();
                 alert(`✅ ${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)} '${userData.username}' created successfully!\n${result.leads_assigned ? `Assigned ${result.leads_assigned} leads.` : ''}`);
                 
-                console.log(`✅ User created:`, result);
+                // User created successfully
 
             } catch (error) {
                 console.error('❌ User creation failed:', error);
@@ -1172,7 +1171,7 @@
                 closeCreateAgentModal();
                 alert(`✅ Agent '${agentData.username}' created successfully and assigned to your team!\nAssigned ${result.leads_assigned} leads to start with.`);
                 
-                console.log(`✅ Agent created:`, result);
+                // Agent created successfully
 
             } catch (error) {
                 console.error('❌ Agent creation failed:', error);
@@ -1215,13 +1214,13 @@
             <div class="stat-card premium">
                 <div class="stat-header">
                     <div class="stat-icon" style="background: var(--vp-success);">
-                        <i class="fas fa-handshake"></i>
+                                                        <i class="fas fa-handshake" aria-hidden="true"></i>
                     </div>
                 </div>
                 <div class="stat-title">Practices Signed Up</div>
                 <div class="stat-value" id="practices-signed-up">0</div>
                 <div style="color: var(--vp-success); font-size: 0.875rem; font-weight: 500;">
-                    <i class="fas fa-trophy"></i> Closed deals
+                                <i class="fas fa-trophy" aria-hidden="true"></i> Closed deals
                 </div>
             </div>
             
@@ -1277,7 +1276,7 @@
                             <input type="text" id="searchInput" class="form-control" placeholder="Search leads..." 
                                    style="width: 250px;" onkeypress="handleSearchKeyPress(event)">
                             <button class="btn-primary" onclick="searchLeads()" style="padding: 0.5rem 1rem;">
-                                <i class="fas fa-search"></i>
+                                <i class="fas fa-search" aria-hidden="true"></i>
                             </button>
                             <button class="btn-secondary" onclick="clearSearch()" style="padding: 0.5rem 1rem;" title="Clear search">
                                 <i class="fas fa-times"></i>
@@ -1288,11 +1287,11 @@
                         <div id="userManagementButtons" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
                             <!-- Admin sees: Create User (can create managers/agents) -->
                             <button id="createUserBtn" class="btn-info" onclick="showCreateUserModal()" style="display: none;">
-                                <i class="fas fa-user-plus"></i> Create User
+                                <i class="fas fa-user-plus" aria-hidden="true"></i> Create User
                             </button>
                             <!-- Manager sees: Create Agent -->
                             <button id="createAgentBtn" class="btn-info" onclick="showCreateAgentModal()" style="display: none;">
-                                <i class="fas fa-user-plus"></i> Create Agent
+                                <i class="fas fa-user-plus" aria-hidden="true"></i> Create Agent
                             </button>
                         </div>
                         
