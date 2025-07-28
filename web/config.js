@@ -1,7 +1,7 @@
 // Frontend Configuration
 const CONFIG = {
     // Production HTTPS Backend URL (AWS Lambda + API Gateway)
-    API_BASE_URL: 'https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod',
+    API_BASE_URL: 'https://api.vantagepointcrm.com',
     
     // API Endpoints
     ENDPOINTS: {
