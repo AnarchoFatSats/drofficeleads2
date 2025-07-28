@@ -14,9 +14,30 @@ USERS = {
     }
 }
 
-# Real leads storage - will be loaded from hot_leads.json or database
-LEADS = []
-LEAD_COUNTER = 0
+LEADS = [
+    {
+        "id": 1,
+        "company_name": "Rural Health Clinic",
+        "contact_name": "Dr. Smith",
+        "phone": "555-0123",
+        "email": "dr.smith@ruralhealthclinic.com",
+        "status": "new",
+        "priority": "high",
+        "specialty": "Primary Care",
+        "location": "Rural County, TX"
+    },
+    {
+        "id": 2,
+        "company_name": "Mountain View Medical",
+        "contact_name": "Dr. Johnson",
+        "phone": "555-0456",
+        "email": "johnson@mountainviewmed.com",
+        "status": "contacted",
+        "priority": "medium",
+        "specialty": "Podiatry",
+        "location": "Mountain View, CO"
+    }
+]
 
 SECRET_KEY = "cura-genesis-crm-super-secret-key-lambda-2025"
 
@@ -41,81 +62,8 @@ def verify_token(token):
     except:
         return None
 
-def load_initial_leads():
-    """Load initial demo leads if LEADS is empty"""
-    global LEADS, LEAD_COUNTER
-    
-    if not LEADS:
-        # Demo leads for testing
-        LEADS = [
-            {
-                "id": 1,
-                "company_name": "Rural Health Clinic",
-                "contact_name": "Dr. Smith",
-                "phone": "555-0123",
-                "email": "dr.smith@ruralhealthclinic.com",
-                "status": "new",
-                "priority": "high",
-                "specialty": "Primary Care",
-                "location": "Rural County, TX",
-                "score": 85,
-                "created_at": datetime.utcnow().isoformat()
-            },
-            {
-                "id": 2,
-                "company_name": "Mountain View Medical",
-                "contact_name": "Dr. Johnson",
-                "phone": "555-0456",
-                "email": "johnson@mountainviewmed.com",
-                "status": "contacted",
-                "priority": "medium",
-                "specialty": "Podiatry",
-                "location": "Mountain View, CO",
-                "score": 75,
-                "created_at": datetime.utcnow().isoformat()
-            }
-        ]
-        LEAD_COUNTER = len(LEADS)
-
-def create_lead(lead_data, user_data):
-    """Create a new lead"""
-    global LEADS, LEAD_COUNTER
-    
-    LEAD_COUNTER += 1
-    
-    # Create new lead with required fields
-    new_lead = {
-        "id": LEAD_COUNTER,
-        "company_name": lead_data.get("company_name", ""),
-        "contact_name": lead_data.get("contact_name", ""),
-        "phone": lead_data.get("phone", ""),
-        "email": lead_data.get("email", ""),
-        "status": lead_data.get("status", "new"),
-        "priority": lead_data.get("priority", "medium"),
-        "specialty": lead_data.get("specialty", ""),
-        "location": lead_data.get("location", ""),
-        "score": lead_data.get("score", 50),
-        "created_at": datetime.utcnow().isoformat(),
-        "created_by": user_data.get("username", "system")
-    }
-    
-    # Add optional fields if provided
-    optional_fields = ["practice_name", "owner_name", "practice_phone", "owner_phone", 
-                      "providers", "city", "state", "zip", "address", "ein", 
-                      "is_sole_proprietor", "entity_type", "npi", "category"]
-    
-    for field in optional_fields:
-        if field in lead_data:
-            new_lead[field] = lead_data[field]
-    
-    LEADS.append(new_lead)
-    return new_lead
-
 def lambda_handler(event, context):
     print(f"Event: {json.dumps(event)}")
-    
-    # Load initial leads if empty
-    load_initial_leads()
     
     method = event.get("httpMethod", "GET")
     path = event.get("path", "/")
@@ -137,12 +85,7 @@ def lambda_handler(event, context):
     
     # Health check
     if path == "/health":
-        return create_response(200, {
-            "status": "healthy", 
-            "service": "CRM Lambda Backend with Lead Creation",
-            "total_leads": len(LEADS),
-            "timestamp": datetime.utcnow().isoformat()
-        })
+        return create_response(200, {"status": "healthy", "service": "CRM Lambda Backend"})
     
     # Authentication endpoint
     if path == "/api/v1/auth/login" and method == "POST":
@@ -174,6 +117,24 @@ def lambda_handler(event, context):
         else:
             return create_response(401, {"detail": "Invalid credentials"})
     
+    # Get current user info endpoint (needed by frontend)
+    if path == "/api/v1/auth/me" and method == "GET":
+        auth_header = headers.get("authorization", headers.get("Authorization", ""))
+        if not auth_header.startswith("Bearer "):
+            return create_response(401, {"detail": "Missing or invalid authorization header"})
+        
+        token = auth_header[7:]
+        user_data = verify_token(token)
+        if not user_data:
+            return create_response(401, {"detail": "Invalid token"})
+        
+        # Return user information
+        return create_response(200, {
+            "username": user_data.get("username"),
+            "role": user_data.get("role"),
+            "email": USERS.get(user_data.get("username"), {}).get("email", "")
+        })
+    
     # Get token from Authorization header
     auth_header = headers.get("authorization", headers.get("Authorization", ""))
     token = None
@@ -181,6 +142,7 @@ def lambda_handler(event, context):
         token = auth_header[7:]
     
     # Protected endpoints require authentication
+    user_data = None
     if path.startswith("/api/v1/") and path != "/api/v1/auth/login":
         if not token:
             return create_response(401, {"detail": "Authentication required"})
@@ -190,123 +152,66 @@ def lambda_handler(event, context):
             return create_response(401, {"detail": "Invalid token"})
     
     # Leads endpoints
-    if path == "/api/v1/leads":
-        if method == "GET":
-            return create_response(200, {
-                "leads": LEADS,
-                "total": len(LEADS),
-                "message": f"Retrieved {len(LEADS)} leads"
-            })
-        
-        elif method == "POST":
-            try:
-                new_lead = create_lead(request_data, user_data)
-                return create_response(201, {
-                    "lead": new_lead,
-                    "message": "Lead created successfully"
-                })
-            except Exception as e:
-                return create_response(400, {
-                    "detail": f"Error creating lead: {str(e)}"
-                })
+    if path == "/api/v1/leads" and method == "GET":
+        return create_response(200, {
+            "leads": LEADS,
+            "total": len(LEADS)
+        })
     
-    # Update specific lead
-    if path.startswith("/api/v1/leads/") and method == "PUT":
+    # Create new lead endpoint
+    if path == "/api/v1/leads" and method == "POST":
         try:
-            lead_id = int(path.split("/")[-1])
-            
-            # Find and update lead
-            for i, lead in enumerate(LEADS):
-                if lead["id"] == lead_id:
-                    # Update lead with new data
-                    LEADS[i].update(request_data)
-                    LEADS[i]["updated_at"] = datetime.utcnow().isoformat()
-                    LEADS[i]["updated_by"] = user_data.get("username", "system")
-                    return create_response(200, LEADS[i])
-            
-            return create_response(404, {"detail": "Lead not found"})
-        except ValueError:
-            return create_response(400, {"detail": "Invalid lead ID"})
-        except Exception as e:
-            return create_response(400, {"detail": f"Error updating lead: {str(e)}"})
-    
-    # Delete specific lead
-    if path.startswith("/api/v1/leads/") and method == "DELETE":
-        try:
-            lead_id = int(path.split("/")[-1])
-            
-            # Find and remove lead
-            for i, lead in enumerate(LEADS):
-                if lead["id"] == lead_id:
-                    removed_lead = LEADS.pop(i)
-                    return create_response(200, {
-                        "message": "Lead deleted successfully",
-                        "deleted_lead": removed_lead
-                    })
-            
-            return create_response(404, {"detail": "Lead not found"})
-        except ValueError:
-            return create_response(400, {"detail": "Invalid lead ID"})
-        except Exception as e:
-            return create_response(400, {"detail": f"Error deleting lead: {str(e)}"})
-    
-    # Bulk load leads endpoint (for uploading hot_leads.json data)
-    if path == "/api/v1/leads/bulk" and method == "POST":
-        try:
-            leads_data = request_data.get("leads", [])
-            if not leads_data:
-                return create_response(400, {"detail": "No leads data provided"})
-            
-            created_leads = []
-            for lead_data in leads_data:
-                try:
-                    new_lead = create_lead(lead_data, user_data)
-                    created_leads.append(new_lead)
-                except Exception as e:
-                    print(f"Error creating lead: {e}")
-                    continue
-            
+            new_lead = {
+                "id": len(LEADS) + 1,
+                "company_name": request_data.get("company_name", "New Practice"),
+                "contact_name": request_data.get("contact_name", ""),
+                "phone": request_data.get("phone", ""),
+                "email": request_data.get("email", ""),
+                "status": request_data.get("status", "new"),
+                "priority": request_data.get("priority", "medium"),
+                "specialty": request_data.get("specialty", ""),
+                "location": request_data.get("location", ""),
+                "score": request_data.get("score", 50),
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": user_data.get("username", "system") if user_data else "system"
+            }
+            LEADS.append(new_lead)
             return create_response(201, {
-                "message": f"Successfully created {len(created_leads)} leads",
-                "created_count": len(created_leads),
-                "total_leads": len(LEADS)
+                "lead": new_lead,
+                "message": "Lead created successfully"
             })
-            
         except Exception as e:
-            return create_response(400, {
-                "detail": f"Error in bulk load: {str(e)}"
-            })
+            return create_response(400, {"detail": f"Error creating lead: {str(e)}"})
+    
+    if path.startswith("/api/v1/leads/") and method == "PUT":
+        lead_id = int(path.split("/")[-1])
+        
+        # Find and update lead
+        for i, lead in enumerate(LEADS):
+            if lead["id"] == lead_id:
+                LEADS[i].update(request_data)
+                return create_response(200, LEADS[i])
+        
+        return create_response(404, {"detail": "Lead not found"})
     
     # Summary endpoint
     if path == "/api/v1/summary" and method == "GET":
-        status_counts = {}
-        priority_counts = {}
-        
-        for lead in LEADS:
-            status = lead.get("status", "unknown")
-            priority = lead.get("priority", "unknown")
-            
-            status_counts[status] = status_counts.get(status, 0) + 1
-            priority_counts[priority] = priority_counts.get(priority, 0) + 1
-        
         return create_response(200, {
             "total_leads": len(LEADS),
-            "status_breakdown": status_counts,
-            "priority_breakdown": priority_counts,
-            "new_leads": status_counts.get("new", 0),
-            "contacted_leads": status_counts.get("contacted", 0),
-            "high_priority": priority_counts.get("high", 0)
+            "new_leads": len([l for l in LEADS if l["status"] == "new"]),
+            "contacted_leads": len([l for l in LEADS if l["status"] == "contacted"]),
+            "high_priority": len([l for l in LEADS if l["priority"] == "high"])
         })
     
     # Hot leads endpoint  
     if path == "/api/v1/hot-leads" and method == "GET":
-        hot_leads = [l for l in LEADS if l.get("priority") == "high" or l.get("score", 0) >= 90]
-        return create_response(200, {"hot_leads": hot_leads, "count": len(hot_leads)})
+        hot_leads = [l for l in LEADS if l["priority"] == "high"]
+        return create_response(200, {"hot_leads": hot_leads})
     
     # Regions endpoint
     if path == "/api/v1/regions" and method == "GET":
-        regions = list(set([lead.get("state", "Unknown") for lead in LEADS if lead.get("state")]))
-        return create_response(200, {"regions": sorted(regions)})
+        regions = ["Texas", "Colorado", "Rural Counties"]
+        return create_response(200, {"regions": regions})
     
     # Default response
     return create_response(404, {"detail": "Endpoint not found"}) 
