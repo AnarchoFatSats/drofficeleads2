@@ -40,7 +40,8 @@ LEADS = [
         "status": "new",
         "priority": "high",
         "specialty": "Podiatrist",
-        "location": "Salina, KS"
+        "location": "Salina, KS",
+        "score": 95
     },
     {
         "id": 2,
@@ -51,7 +52,8 @@ LEADS = [
         "status": "new",
         "priority": "high",
         "specialty": "Podiatrist",
-        "location": "Oakland, MD"
+        "location": "Oakland, MD",
+        "score": 100
     },
     {
         "id": 3,
@@ -62,7 +64,8 @@ LEADS = [
         "status": "new",
         "priority": "high",
         "specialty": "Podiatrist",
-        "location": "La Plata, MD"
+        "location": "La Plata, MD",
+        "score": 92
     },
     {
         "id": 4,
@@ -73,7 +76,8 @@ LEADS = [
         "status": "new",
         "priority": "high",
         "specialty": "Podiatrist",
-        "location": "Las Vegas, NV"
+        "location": "Las Vegas, NV",
+        "score": 88
     },
     {
         "id": 5,
@@ -217,7 +221,10 @@ def lambda_handler(event, context):
             "total_leads": len(LEADS),
             "new_leads": len([l for l in LEADS if l["status"] == "new"]),
             "contacted_leads": len([l for l in LEADS if l["status"] == "contacted"]),
-            "high_priority": len([l for l in LEADS if l["priority"] == "high"])
+            "high_priority": len([l for l in LEADS if l["priority"] == "high"]),
+            "goldmines": len([l for l in LEADS if l.get("priority") == "high" and l.get("score", 0) >= 90]),
+            "high_value": len([l for l in LEADS if l.get("score", 0) >= 80]),
+            "perfect_scores": len([l for l in LEADS if l.get("score", 0) == 100])
         })
     
     # Hot leads endpoint  

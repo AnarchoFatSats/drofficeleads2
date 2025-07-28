@@ -255,13 +255,13 @@ async function loadData() {
         showLoadingOverlay();
         
         // Load all data from API endpoints
-        const [leadsData, summaryData] = await Promise.all([
+        const [leadsData, summaryResponse] = await Promise.all([
             apiCall(CONFIG.ENDPOINTS.LEADS),
             apiCall(CONFIG.ENDPOINTS.SUMMARY)
         ]);
 
         allLeads = leadsData.leads || [];
-        summaryData = summaryData;
+        summaryData = summaryResponse;
         
         // Initialize the UI
         updateUserInfo(); // Update user display
@@ -283,28 +283,49 @@ async function loadData() {
 // Update dashboard statistics
 function updateDashboardStats() {
     document.getElementById('total-leads').textContent = summaryData.total_leads?.toLocaleString() || '0';
-    document.getElementById('goldmines').textContent = summaryData.goldmines?.toLocaleString() || '0';
-    document.getElementById('high-value').textContent = summaryData.high_value?.toLocaleString() || '0';
-    document.getElementById('perfect-scores').textContent = summaryData.perfect_scores?.toLocaleString() || '0';
+    // Calculate missing stats from leads data if not provided by API
+    const goldmines = summaryData.goldmines ?? allLeads.filter(l => l.priority === 'high' && (l.score || 0) >= 90).length;
+    const highValue = summaryData.high_value ?? allLeads.filter(l => (l.score || 0) >= 80).length;
+    const perfectScores = summaryData.perfect_scores ?? allLeads.filter(l => (l.score || 0) === 100).length;
+    
+    document.getElementById('goldmines').textContent = goldmines.toLocaleString();
+    document.getElementById('high-value').textContent = highValue.toLocaleString();
+    document.getElementById('perfect-scores').textContent = perfectScores.toLocaleString();
 }
 
 // Populate filter dropdowns
 function populateFilterDropdowns() {
-    // Get unique states and cities
-    const states = [...new Set(allLeads.map(lead => lead.state).filter(state => state && state !== 'N/A'))].sort();
-    const cities = [...new Set(allLeads.map(lead => lead.city).filter(city => city && city !== 'N/A'))].sort();
+    // Get unique states and cities from location field if state/city don't exist
+    const states = [...new Set(allLeads.map(lead => {
+        if (lead.state) return lead.state;
+        // Extract state from location field like "Rural County, TX"
+        const location = lead.location || '';
+        const parts = location.split(',');
+        return parts.length > 1 ? parts[parts.length - 1].trim() : '';
+    }).filter(state => state && state !== 'N/A'))].sort();
+    
+    const cities = [...new Set(allLeads.map(lead => {
+        if (lead.city) return lead.city;
+        // Extract city from location field
+        const location = lead.location || '';
+        const parts = location.split(',');
+        return parts.length > 0 ? parts[0].trim() : '';
+    }).filter(city => city && city !== 'N/A'))].sort();
     
     // Store cities for autocomplete
     allCities = new Set(cities);
     
     // Populate state filter
     const stateFilter = document.getElementById('state-filter');
-    states.forEach(state => {
-        const option = document.createElement('option');
-        option.value = state;
-        option.textContent = state;
-        stateFilter.appendChild(option);
-    });
+    if (stateFilter) {
+        stateFilter.innerHTML = '<option value="">All States</option>'; // Clear existing options
+        states.forEach(state => {
+            const option = document.createElement('option');
+            option.value = state;
+            option.textContent = state;
+            stateFilter.appendChild(option);
+        });
+    }
 }
 
 // Update last updated timestamp
@@ -437,13 +458,21 @@ function applyFilters() {
         }
         
         // City filter (now uses autocomplete)
-        if (selectedCityFilter && lead.city !== selectedCityFilter) {
-            return false;
+        if (selectedCityFilter) {
+            const location = lead.location || '';
+            const locationParts = location.split(',');
+            const city = lead.city || (locationParts.length > 0 ? locationParts[0].trim() : '');
+            if (city !== selectedCityFilter) {
+                return false;
+            }
         }
         
         // ZIP filter
-        if (zipFilter && !lead.zip.toLowerCase().includes(zipFilter)) {
-            return false;
+        if (zipFilter) {
+            const zip = lead.zip || lead.zip_code || '';
+            if (!zip.toLowerCase().includes(zipFilter)) {
+                return false;
+            }
         }
 
         // Disposition filter
@@ -461,12 +490,13 @@ function applyFilters() {
         // Search filter (searches across multiple fields)
         if (searchFilter) {
             const searchFields = [
-                lead.practice_name,
-                lead.owner_name,
-                lead.specialties,
-                lead.category,
+                lead.company_name || lead.practice_name,
+                lead.contact_name || lead.owner_name,
+                lead.specialty || lead.specialties,
+                lead.specialty || lead.category,
                 lead.entity_type,
-                lead.npi
+                lead.npi,
+                lead.location
             ].map(field => (field || '').toLowerCase());
             
             if (!searchFields.some(field => field.includes(searchFilter))) {
@@ -518,56 +548,62 @@ function renderLeadsTable() {
         const leadData = getLeadData(lead.id);
         const isExpanded = expandedLeads.has(lead.id);
         
+        // Extract city and state from location if not separate
+        const location = lead.location || '';
+        const locationParts = location.split(',');
+        const city = lead.city || (locationParts.length > 0 ? locationParts[0].trim() : 'N/A');
+        const state = lead.state || (locationParts.length > 1 ? locationParts[locationParts.length - 1].trim() : 'N/A');
+        
         return `
         <tr class="lead-row ${isExpanded ? 'expanded' : ''}" data-lead-id="${lead.id}">
             <td>
-                <div class="score-badge ${getScoreClass(lead.score)}">
-                    ${lead.score}
+                <div class="score-badge ${getScoreClass(lead.score || 0)}">
+                    ${lead.score || 'N/A'}
                 </div>
             </td>
             <td>
                 <span class="priority-badge ${getPriorityClass(lead.priority)}">
-                    ${lead.priority}
+                    ${lead.priority || 'N/A'}
                 </span>
             </td>
             <td>
                 <div class="practice-name clickable" data-lead-id="${lead.id}" data-action="toggle-expand">
-                    <strong>${lead.practice_name || 'N/A'}</strong>
+                    <strong>${lead.company_name || lead.practice_name || 'N/A'}</strong>
                     <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'} expand-icon"></i>
                     ${lead.ein ? `<div class="ein-info">EIN: ${lead.ein}</div>` : ''}
                 </div>
             </td>
             <td>
                 <div class="owner-info">
-                    ${lead.owner_name || 'N/A'}
+                    ${lead.contact_name || lead.owner_name || 'N/A'}
                     ${lead.is_sole_proprietor === 'True' ? '<div class="sole-prop">Sole Proprietor</div>' : ''}
                 </div>
             </td>
             <td>
-                ${lead.practice_phone ? `<span class="phone-display">${lead.practice_phone}</span>` : '<span class="no-phone">N/A</span>'}
+                ${lead.phone || lead.practice_phone ? `<span class="phone-display">${lead.phone || lead.practice_phone}</span>` : '<span class="no-phone">N/A</span>'}
             </td>
             <td>
                 ${lead.owner_phone ? `<span class="phone-display">${lead.owner_phone}</span>` : '<span class="no-phone">N/A</span>'}
             </td>
             <td>
-                <span class="category-badge ${getCategoryClass(lead.category)}">
-                    ${lead.category}
+                <span class="category-badge ${getCategoryClass(lead.specialty || lead.category)}">
+                    ${lead.specialty || lead.category || 'N/A'}
                 </span>
             </td>
             <td>
-                <strong>${lead.providers}</strong> provider${lead.providers > 1 ? 's' : ''}
+                <strong>${lead.providers || 1}</strong> provider${(lead.providers || 1) > 1 ? 's' : ''}
             </td>
             <td>
                 <div class="city-info">
-                    ${lead.city || 'N/A'}
+                    ${city}
                 </div>
             </td>
             <td>
                 <div class="state-info">
-                    ${lead.state || 'N/A'}
+                    ${state}
                 </div>
             </td>
-            <td><strong>${lead.zip}</strong></td>
+            <td><strong>${lead.zip || lead.zip_code || 'N/A'}</strong></td>
             <td>
                 <div class="entity-info">
                     ${lead.entity_type || 'N/A'}
