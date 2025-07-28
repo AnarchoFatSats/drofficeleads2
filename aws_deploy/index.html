@@ -1075,33 +1075,78 @@
 
         // Show user management buttons based on role
         function showUserManagementButtons() {
-            if (!currentUser) return;
+            console.log('🔍 showUserManagementButtons called');
+            console.log('👤 Current user:', currentUser);
+            
+            if (!currentUser) {
+                console.error('❌ No currentUser found - cannot show management buttons');
+                return;
+            }
+            
+            console.log(`🎭 User role detected: ${currentUser.role}`);
             
             const createUserBtn = document.getElementById('createUserBtn');
             const createAgentBtn = document.getElementById('createAgentBtn');
             
+            if (!createUserBtn) {
+                console.error('❌ createUserBtn element not found!');
+                return;
+            }
+            if (!createAgentBtn) {
+                console.error('❌ createAgentBtn element not found!');
+                return;
+            }
+            
+            console.log('✅ Found button elements, applying role-based visibility...');
+            
             if (currentUser.role === 'admin') {
+                console.log('👑 Admin role detected - showing Create User button');
                 createUserBtn.style.display = 'block';
                 createAgentBtn.style.display = 'none';
+                console.log('✅ Create User button should now be visible');
             } else if (currentUser.role === 'manager') {
+                console.log('👨‍💼 Manager role detected - showing Create Agent button');
                 createUserBtn.style.display = 'none';
                 createAgentBtn.style.display = 'block';
+                console.log('✅ Create Agent button should now be visible');
             } else {
+                console.log('👤 Agent/other role detected - hiding all management buttons');
                 createUserBtn.style.display = 'none';
                 createAgentBtn.style.display = 'none';
             }
+            
+            // Verify final button states
+            console.log(`📊 Final button states:`);
+            console.log(`   Create User btn display: ${createUserBtn.style.display}`);
+            console.log(`   Create Agent btn display: ${createAgentBtn.style.display}`);
         }
 
         // Create User Modal Functions (Admin)
         function showCreateUserModal() {
-            console.log('🔍 Opening Create User Modal...');
+            console.log('🔍 showCreateUserModal() function called!');
+            console.log('👤 Current user when opening modal:', currentUser);
+            
             try {
-                document.getElementById('createUserModal').style.display = 'block';
-                console.log('✅ Modal displayed, loading managers...');
+                const modal = document.getElementById('createUserModal');
+                if (!modal) {
+                    console.error('❌ createUserModal element not found in DOM!');
+                    alert('❌ Error: User creation form not found. Please refresh the page.');
+                    return;
+                }
+                
+                console.log('✅ Found modal element, attempting to display...');
+                modal.style.display = 'block';
+                console.log('✅ Modal display set to block, should now be visible');
+                
+                console.log('📋 Loading managers for selection...');
                 loadManagersForSelection();
+                
+                console.log('🎉 Modal should now be fully open and functional');
+                
             } catch (error) {
                 console.error('❌ Error opening modal:', error);
-                alert('Error opening user creation form. Please try again.');
+                console.error('❌ Error details:', error.stack);
+                alert(`❌ Error opening user creation form: ${error.message}`);
             }
         }
 
@@ -1356,9 +1401,70 @@
             }
         }
 
+        // Debug function to test modal functionality
+        function debugModalTest() {
+            console.log('🧪 MANUAL MODAL TEST');
+            console.log('='.repeat(50));
+            
+            // Test 1: Check if buttons exist
+            const createUserBtn = document.getElementById('createUserBtn');
+            const createAgentBtn = document.getElementById('createAgentBtn');
+            
+            console.log('🔍 Button Elements:');
+            console.log('   Create User Button:', createUserBtn);
+            console.log('   Create Agent Button:', createAgentBtn);
+            
+            if (createUserBtn) {
+                console.log(`   Create User Button display: ${createUserBtn.style.display}`);
+                console.log(`   Create User Button computed style:`, window.getComputedStyle(createUserBtn).display);
+            }
+            
+            // Test 2: Check if modal exists
+            const modal = document.getElementById('createUserModal');
+            console.log('🔍 Modal Element:', modal);
+            
+            if (modal) {
+                console.log(`   Modal display: ${modal.style.display}`);
+                console.log(`   Modal computed style:`, window.getComputedStyle(modal).display);
+            }
+            
+            // Test 3: Force show button
+            if (createUserBtn) {
+                console.log('🔧 Forcing Create User button to be visible...');
+                createUserBtn.style.display = 'block';
+                createUserBtn.style.visibility = 'visible';
+                createUserBtn.style.opacity = '1';
+                console.log('✅ Button forced visible');
+            }
+            
+            // Test 4: Check current user
+            console.log('👤 Current User:', currentUser);
+            
+            console.log('🧪 Manual test complete - try clicking Create User button now');
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 VantagePoint CRM Loading...');
+            
+            // Add debug button to page for testing
+            console.log('🧪 Adding debug test button...');
+            setTimeout(() => {
+                const header = document.querySelector('header .container-fluid');
+                if (header) {
+                    const debugBtn = document.createElement('button');
+                    debugBtn.innerHTML = '🧪 Debug Test';
+                    debugBtn.className = 'btn btn-warning';
+                    debugBtn.style.position = 'absolute';
+                    debugBtn.style.top = '10px';
+                    debugBtn.style.right = '10px';
+                    debugBtn.style.zIndex = '9999';
+                    debugBtn.onclick = debugModalTest;
+                    header.appendChild(debugBtn);
+                    console.log('✅ Debug button added to page');
+                }
+            }, 1000);
+            
             checkAuthentication();
         });
     </script>
