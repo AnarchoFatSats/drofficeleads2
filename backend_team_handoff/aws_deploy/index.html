@@ -1094,30 +1094,61 @@
 
         // Create User Modal Functions (Admin)
         function showCreateUserModal() {
-            document.getElementById('createUserModal').style.display = 'block';
-            loadManagersForSelection();
+            console.log('🔍 Opening Create User Modal...');
+            try {
+                document.getElementById('createUserModal').style.display = 'block';
+                console.log('✅ Modal displayed, loading managers...');
+                loadManagersForSelection();
+            } catch (error) {
+                console.error('❌ Error opening modal:', error);
+                alert('Error opening user creation form. Please try again.');
+            }
         }
 
         function closeCreateUserModal() {
-            document.getElementById('createUserModal').style.display = 'none';
-            document.getElementById('createUserForm').reset();
+            console.log('🔍 Closing Create User Modal...');
+            try {
+                document.getElementById('createUserModal').style.display = 'none';
+                document.getElementById('createUserForm').reset();
+                console.log('✅ Modal closed successfully');
+            } catch (error) {
+                console.error('❌ Error closing modal:', error);
+            }
         }
 
         async function loadManagersForSelection() {
+            console.log('🔍 Loading managers for selection...');
+            const managerSelect = document.getElementById('managerSelect');
+            
             try {
+                // Set loading state
+                managerSelect.innerHTML = '<option value="">Loading managers...</option>';
+                managerSelect.disabled = true;
+                
                 const token = localStorage.getItem('token');
+                console.log('🔑 Token retrieved, making API call...');
+                
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                
                 const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.MANAGERS}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
+                console.log(`📡 Managers API response: ${response.status}`);
 
-                const managerSelect = document.getElementById('managerSelect');
                 managerSelect.innerHTML = '<option value="">Select Manager...</option>';
+                managerSelect.disabled = false;
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log(`📋 Loaded ${data.managers.length} managers`);
                     data.managers.forEach(manager => {
                         managerSelect.innerHTML += `<option value="${manager.id}">${manager.full_name} (${manager.username}) - ${manager.agent_count} agents</option>`;
                     });
@@ -1126,98 +1157,202 @@
                     managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
                 }
             } catch (error) {
-                console.error('Error loading managers:', error);
-                const managerSelect = document.getElementById('managerSelect');
+                console.error('❌ Error loading managers:', error);
                 managerSelect.innerHTML = '<option value="">Select Manager...</option>';
                 managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+                managerSelect.disabled = false;
+                
+                if (error.name === 'AbortError') {
+                    console.error('⏰ Managers loading timed out');
+                    alert('Loading managers timed out. Using fallback options.');
+                }
             }
         }
 
         async function createUser() {
-            const formData = new FormData(document.getElementById('createUserForm'));
+            console.log('🔍 Starting user creation...');
             
-            const userData = {
-                username: formData.get('username'),
-                full_name: formData.get('full_name'),
-                role: formData.get('role'),
-                password: formData.get('password'),
-                manager_id: formData.get('manager_id') ? parseInt(formData.get('manager_id')) : null
-            };
-
+            // Get form elements for loading state
+            const createButton = document.querySelector('#createUserModal .btn-primary');
+            const originalButtonText = createButton.innerHTML;
+            
             try {
+                // Set loading state
+                createButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                createButton.disabled = true;
+                
+                const formData = new FormData(document.getElementById('createUserForm'));
+                
+                const userData = {
+                    username: formData.get('username'),
+                    full_name: formData.get('full_name'),
+                    role: formData.get('role'),
+                    password: formData.get('password'),
+                    manager_id: formData.get('manager_id') ? parseInt(formData.get('manager_id')) : null
+                };
+
+                console.log('👤 Creating user:', { ...userData, password: '[REDACTED]' });
+                
+                // Validate required fields
+                if (!userData.username || !userData.full_name || !userData.role) {
+                    throw new Error('Please fill in all required fields');
+                }
+
                 const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('Authentication token not found. Please log in again.');
+                }
+                
+                console.log('📡 Making user creation API call...');
+                
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(userData)
+                    body: JSON.stringify(userData),
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
+                console.log(`📡 User creation API response: ${response.status}`);
 
                 const result = await response.json();
+                console.log('📊 User creation result:', result);
 
                 if (!response.ok) {
-                    throw new Error(result.detail || 'Failed to create user');
+                    throw new Error(result.detail || `Server error: ${response.status}`);
                 }
 
+                // Success
                 closeCreateUserModal();
                 alert(`✅ ${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)} '${userData.username}' created successfully!\n${result.leads_assigned ? `Assigned ${result.leads_assigned} leads.` : ''}`);
                 
-                // User created successfully
+                console.log('✅ User created successfully');
 
             } catch (error) {
                 console.error('❌ User creation failed:', error);
-                alert(`Failed to create user: ${error.message}`);
+                
+                if (error.name === 'AbortError') {
+                    alert('❌ User creation timed out. Please try again.');
+                } else {
+                    alert(`❌ Failed to create user: ${error.message}`);
+                }
+            } finally {
+                // Reset button state
+                createButton.innerHTML = originalButtonText;
+                createButton.disabled = false;
+                console.log('🔄 User creation process completed');
             }
         }
 
         // Create Agent Modal Functions (Manager)
         function showCreateAgentModal() {
-            document.getElementById('createAgentModal').style.display = 'block';
+            console.log('🔍 Opening Create Agent Modal...');
+            try {
+                document.getElementById('createAgentModal').style.display = 'block';
+                console.log('✅ Agent modal displayed successfully');
+            } catch (error) {
+                console.error('❌ Error opening agent modal:', error);
+                alert('Error opening agent creation form. Please try again.');
+            }
         }
 
         function closeCreateAgentModal() {
-            document.getElementById('createAgentModal').style.display = 'none';
-            document.getElementById('createAgentForm').reset();
+            console.log('🔍 Closing Create Agent Modal...');
+            try {
+                document.getElementById('createAgentModal').style.display = 'none';
+                document.getElementById('createAgentForm').reset();
+                console.log('✅ Agent modal closed successfully');
+            } catch (error) {
+                console.error('❌ Error closing agent modal:', error);
+            }
         }
 
         async function createAgent() {
-            const formData = new FormData(document.getElementById('createAgentForm'));
+            console.log('🔍 Starting agent creation...');
             
-            const agentData = {
-                username: formData.get('username'),
-                full_name: formData.get('full_name'),
-                role: 'agent',  // Always agent for managers
-                password: formData.get('password')
-                // manager_id will be set automatically by backend to current user
-            };
-
+            // Get form elements for loading state
+            const createButton = document.querySelector('#createAgentModal .btn-primary');
+            const originalButtonText = createButton.innerHTML;
+            
             try {
+                // Set loading state
+                createButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                createButton.disabled = true;
+                
+                const formData = new FormData(document.getElementById('createAgentForm'));
+                
+                const agentData = {
+                    username: formData.get('username'),
+                    full_name: formData.get('full_name'),
+                    role: 'agent',  // Always agent for managers
+                    password: formData.get('password')
+                    // manager_id will be set automatically by backend to current user
+                };
+
+                console.log('👨‍💼 Creating agent:', { ...agentData, password: '[REDACTED]' });
+                
+                // Validate required fields
+                if (!agentData.username || !agentData.full_name) {
+                    throw new Error('Please fill in all required fields');
+                }
+
                 const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('Authentication token not found. Please log in again.');
+                }
+                
+                console.log('📡 Making agent creation API call...');
+                
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(agentData)
+                    body: JSON.stringify(agentData),
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
+                console.log(`📡 Agent creation API response: ${response.status}`);
 
                 const result = await response.json();
+                console.log('📊 Agent creation result:', result);
 
                 if (!response.ok) {
-                    throw new Error(result.detail || 'Failed to create agent');
+                    throw new Error(result.detail || `Server error: ${response.status}`);
                 }
 
+                // Success
                 closeCreateAgentModal();
                 alert(`✅ Agent '${agentData.username}' created successfully and assigned to your team!\nAssigned ${result.leads_assigned} leads to start with.`);
                 
-                // Agent created successfully
+                console.log('✅ Agent created successfully');
 
             } catch (error) {
                 console.error('❌ Agent creation failed:', error);
-                alert(`Failed to create agent: ${error.message}`);
+                
+                if (error.name === 'AbortError') {
+                    alert('❌ Agent creation timed out. Please try again.');
+                } else {
+                    alert(`❌ Failed to create agent: ${error.message}`);
+                }
+            } finally {
+                // Reset button state
+                createButton.innerHTML = originalButtonText;
+                createButton.disabled = false;
+                console.log('🔄 Agent creation process completed');
             }
         }
 
