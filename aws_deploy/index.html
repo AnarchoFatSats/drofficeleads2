@@ -291,6 +291,26 @@
             box-shadow: none;
         }
 
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496 0%, #0e6b7e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        }
+
         .btn-warning {
             background: linear-gradient(135deg, var(--vp-warning) 0%, #c05621 100%);
             color: white;
@@ -468,6 +488,85 @@
         }
     </style>
 
+    <!-- Create User Modal (Admin) -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create User</h5>
+                    <button type="button" class="btn-close" onclick="closeCreateUserModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select name="role" class="form-control" required>
+                                <option value="agent">Agent</option>
+                                <option value="manager">Manager</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="managerAssignmentDiv">
+                            <label class="form-label">Assign to Manager (for Agents)</label>
+                            <select name="manager_id" class="form-control" id="managerSelect">
+                                <option value="">Select Manager...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" value="admin123">
+                            <small class="text-muted">Default: admin123 (user can change later)</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateUserModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createUser()">Create User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Agent Modal (Manager) -->
+    <div class="modal fade" id="createAgentModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Agent</h5>
+                    <button type="button" class="btn-close" onclick="closeCreateAgentModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createAgentForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" value="admin123">
+                            <small class="text-muted">Default: admin123 (agent can change later)</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateAgentModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createAgent()">Create Agent</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Configuration for Lambda API
         const CONFIG = {
@@ -513,6 +612,7 @@
             .then(user => {
                 currentUser = user;
                 document.getElementById('username-display').textContent = user.full_name || user.username;
+                showUserManagementButtons(); // Show appropriate buttons based on role
                 loadData();
             })
             .catch(error => {
@@ -955,6 +1055,131 @@
             }
         }
 
+        // Show user management buttons based on role
+        function showUserManagementButtons() {
+            if (!currentUser) return;
+            
+            const createUserBtn = document.getElementById('createUserBtn');
+            const createAgentBtn = document.getElementById('createAgentBtn');
+            
+            if (currentUser.role === 'admin') {
+                createUserBtn.style.display = 'block';
+                createAgentBtn.style.display = 'none';
+            } else if (currentUser.role === 'manager') {
+                createUserBtn.style.display = 'none';
+                createAgentBtn.style.display = 'block';
+            } else {
+                createUserBtn.style.display = 'none';
+                createAgentBtn.style.display = 'none';
+            }
+        }
+
+        // Create User Modal Functions (Admin)
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'block';
+            loadManagersForSelection();
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            document.getElementById('createUserForm').reset();
+        }
+
+        async function loadManagersForSelection() {
+            // For now, hard-coded manager1. In a full system, you'd fetch all managers
+            const managerSelect = document.getElementById('managerSelect');
+            managerSelect.innerHTML = '<option value="">Select Manager...</option>';
+            managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+        }
+
+        async function createUser() {
+            const formData = new FormData(document.getElementById('createUserForm'));
+            
+            const userData = {
+                username: formData.get('username'),
+                full_name: formData.get('full_name'),
+                role: formData.get('role'),
+                password: formData.get('password'),
+                manager_id: formData.get('manager_id') ? parseInt(formData.get('manager_id')) : null
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create user');
+                }
+
+                closeCreateUserModal();
+                alert(`✅ ${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)} '${userData.username}' created successfully!\n${result.leads_assigned ? `Assigned ${result.leads_assigned} leads.` : ''}`);
+                
+                console.log(`✅ User created:`, result);
+
+            } catch (error) {
+                console.error('❌ User creation failed:', error);
+                alert(`Failed to create user: ${error.message}`);
+            }
+        }
+
+        // Create Agent Modal Functions (Manager)
+        function showCreateAgentModal() {
+            document.getElementById('createAgentModal').style.display = 'block';
+        }
+
+        function closeCreateAgentModal() {
+            document.getElementById('createAgentModal').style.display = 'none';
+            document.getElementById('createAgentForm').reset();
+        }
+
+        async function createAgent() {
+            const formData = new FormData(document.getElementById('createAgentForm'));
+            
+            const agentData = {
+                username: formData.get('username'),
+                full_name: formData.get('full_name'),
+                role: 'agent',  // Always agent for managers
+                password: formData.get('password')
+                // manager_id will be set automatically by backend to current user
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(agentData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create agent');
+                }
+
+                closeCreateAgentModal();
+                alert(`✅ Agent '${agentData.username}' created successfully and assigned to your team!\nAssigned ${result.leads_assigned} leads to start with.`);
+                
+                console.log(`✅ Agent created:`, result);
+
+            } catch (error) {
+                console.error('❌ Agent creation failed:', error);
+                alert(`Failed to create agent: ${error.message}`);
+            }
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 VantagePoint CRM Loading...');
@@ -1058,6 +1283,19 @@
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
+                        
+                        <!-- User Management Buttons (Role-based) -->
+                        <div id="userManagementButtons" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <!-- Admin sees: Create User (can create managers/agents) -->
+                            <button id="createUserBtn" class="btn-info" onclick="showCreateUserModal()" style="display: none;">
+                                <i class="fas fa-user-plus"></i> Create User
+                            </button>
+                            <!-- Manager sees: Create Agent -->
+                            <button id="createAgentBtn" class="btn-info" onclick="showCreateAgentModal()" style="display: none;">
+                                <i class="fas fa-user-plus"></i> Create Agent
+                            </button>
+                        </div>
+                        
                         <button class="btn-warning" onclick="showCreateLeadModal()">
                             <i class="fas fa-plus"></i> Create Lead
                         </button>
