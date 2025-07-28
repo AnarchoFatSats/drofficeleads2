@@ -758,7 +758,7 @@
                         </td>
                         <td><strong>${lead.practice_name || 'N/A'}</strong></td>
                         <td>${lead.owner_name || 'N/A'}</td>
-                        <td>${lead.email || 'N/A'}</td>
+                        <td>${lead.email && lead.email.trim() ? lead.email : '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Missing</span>'}</td>
                         <td>${lead.practice_phone || 'N/A'}</td>
                         <td>${lead.city || 'N/A'}, ${lead.state || 'N/A'}</td>
                         <td>${priorityBadge}</td>
@@ -773,7 +773,11 @@
                                 <button class="btn btn-sm btn-success ms-1" onclick="sendDocs(${lead.id}); event.stopPropagation();">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
-                            ` : ''}
+                            ` : `
+                                <button class="btn btn-sm btn-secondary ms-1" disabled title="${getCannotSendDocsReason(lead)}" onclick="event.stopPropagation();">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            `}
                         </td>
                     </tr>
                 `;
@@ -814,9 +818,22 @@
         }
 
         function canSendDocs(lead) {
-            return lead.email && 
+            return lead.email && lead.email.trim() !== '' && 
                    ['new', 'contacted', 'qualified'].includes(lead.status?.toLowerCase()) &&
                    !lead.docs_sent;
+        }
+
+        function getCannotSendDocsReason(lead) {
+            if (!lead.email || lead.email.trim() === '') {
+                return 'Lead must have an email address';
+            }
+            if (lead.docs_sent) {
+                return 'Documents already sent to this lead';
+            }
+            if (!['new', 'contacted', 'qualified'].includes(lead.status?.toLowerCase())) {
+                return 'Lead must be in New, Contacted, or Qualified status';
+            }
+            return null;
         }
 
         async function editLead(leadId) {
@@ -896,7 +913,8 @@
         async function sendDocs(leadId) {
             const lead = allLeads.find(l => l.id === leadId);
             if (!canSendDocs(lead)) {
-                alert('Lead must have email and be contacted or qualified before sending docs.');
+                const reason = getCannotSendDocsReason(lead);
+                alert(`Cannot send documents: ${reason}`);
                 return;
             }
 
@@ -1363,8 +1381,9 @@
                                     <input type="tel" name="practice_phone" class="form-control" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" name="email" class="form-control">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" name="email" class="form-control" required>
+                                    <small class="text-muted">Required for sending documents</small>
                                 </div>
                             </div>
                             <div class="row mt-3">
@@ -1466,8 +1485,9 @@
                         </div>
                         <div class="row mt-3">
                             <div class="col-md-6">
-                                <label class="form-label">Email</label>
+                                <label class="form-label">Email <small class="text-warning">(Required for sending docs)</small></label>
                                 <input type="email" id="editEmail" class="form-control">
+                                <small class="text-muted">Email is required to send documents to this lead</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Phone</label>
