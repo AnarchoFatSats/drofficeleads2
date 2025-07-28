@@ -716,7 +716,7 @@
 
         function canSendDocs(lead) {
             return lead.email && 
-                   ['contacted', 'qualified'].includes(lead.status?.toLowerCase()) &&
+                   ['new', 'contacted', 'qualified'].includes(lead.status?.toLowerCase()) &&
                    !lead.docs_sent;
         }
 

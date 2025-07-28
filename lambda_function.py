@@ -97,9 +97,11 @@ USERS = {
     }
 }
 
-# Auto-incrementing IDs
+# Auto-incrementing IDs - Initialize based on existing data
 NEXT_USER_ID = 4
-NEXT_LEAD_ID = 21
+# Calculate NEXT_LEAD_ID based on existing leads to avoid conflicts
+existing_lead_ids = [1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19]  # Known IDs from current data
+NEXT_LEAD_ID = max(existing_lead_ids) + 1 if existing_lead_ids else 1
 
 # Production leads database - 20 high-quality leads with all statuses
 LEADS = [
@@ -201,7 +203,7 @@ LEADS = [
         "score": 89,
         "priority": "high",
         "status": "new",
-        "assigned_user_id": None,
+        "assigned_user_id": 3,  # Fixed: Assign to agent1
         "docs_sent": False,
         "ptan": "",
         "ein_tin": "",
@@ -516,7 +518,7 @@ LEADS = [
         "score": 83,
         "priority": "medium",
         "status": "new",
-        "assigned_user_id": None,
+        "assigned_user_id": 3,  # Fixed: Assign to agent1
         "docs_sent": False,
         "ptan": "",
         "ein_tin": "",
@@ -792,14 +794,21 @@ def lambda_handler(event, context):
             }
             
             LEADS.append(new_lead)
+            old_next_id = NEXT_LEAD_ID
             NEXT_LEAD_ID += 1
             
             print(f"✅ Lead created and assigned to user {assigned_user_id} ({get_user_by_id(assigned_user_id)['username']})")
+            print(f"📊 Lead ID: {new_lead['id']}, Previous NEXT_LEAD_ID: {old_next_id}, New NEXT_LEAD_ID: {NEXT_LEAD_ID}")
+            print(f"📋 Total leads in memory: {len(LEADS)}")
             
             return create_response(201, {
                 "message": "Lead created successfully",
                 "lead": new_lead,
-                "assigned_to": get_user_by_id(assigned_user_id)['username']
+                "assigned_to": get_user_by_id(assigned_user_id)['username'],
+                "debug_info": {
+                    "total_leads": len(LEADS),
+                    "next_lead_id": NEXT_LEAD_ID
+                }
             })
 
         # Search leads
@@ -846,11 +855,16 @@ def lambda_handler(event, context):
         
         # Update lead
         if path.startswith('/api/v1/leads/') and method == 'PUT':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_id = int(path.split('/')[-1])
             lead = next((l for l in LEADS if l["id"] == lead_id), None)
             
             if not lead:
-                return create_response(404, {"detail": "Lead not found"})
+                return create_response(404, {"detail": f"Lead not found (ID: {lead_id}). Available IDs: {[l['id'] for l in LEADS][:10]}..."})
             
             # Check permissions - agents can only edit their own leads
             if current_user['role'] == 'agent' and lead["assigned_user_id"] != current_user['id']:
@@ -876,6 +890,11 @@ def lambda_handler(event, context):
         
         # Send docs endpoint
         if path.startswith('/api/v1/leads/') and path.endswith('/send-docs') and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_id = int(path.split('/')[-2])
             lead = next((l for l in LEADS if l["id"] == lead_id), None)
             
