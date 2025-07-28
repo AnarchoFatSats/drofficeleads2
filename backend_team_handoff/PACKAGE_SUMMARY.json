@@ -25,7 +25,7 @@
     "5. Deploy automation"
   ],
   "production_lambda": {
-    "url": "https://blyqk7itsc.execute-api.us-east-1.amazonaws.com/prod",
+    "url": "https://api.vantagepointcrm.com",
     "function_name": "cura-genesis-crm-api",
     "region": "us-east-1"
   },
