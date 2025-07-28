@@ -726,8 +726,20 @@ def lambda_handler(event, context):
                 "total": len(visible_leads)
             })
         
+        # Helper function to get user by ID
+        def get_user_by_id(user_id):
+            for user_data in USERS.values():
+                if user_data['id'] == user_id:
+                    return user_data
+            return None
+
         # Create new lead
         if path == '/api/v1/leads' and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_data = body_data
             
             # Validate required fields
@@ -735,6 +747,25 @@ def lambda_handler(event, context):
             for field in required_fields:
                 if not lead_data.get(field):
                     return create_response(400, {"detail": f"{field} is required"})
+            
+            # Auto-assign to current user if no assignment specified
+            assigned_user_id = lead_data.get('assigned_user_id')
+            if not assigned_user_id:
+                # Auto-assign based on role
+                if current_user['role'] == 'agent':
+                    assigned_user_id = current_user['id']
+                elif current_user['role'] == 'manager':
+                    # Managers can assign to themselves or their agents
+                    managed_agent_ids = [u['id'] for u in USERS.values() if u.get('manager_id') == current_user['id']]
+                    if managed_agent_ids:
+                        # Assign to first available agent (can be enhanced with round-robin)
+                        assigned_user_id = managed_agent_ids[0]
+                    else:
+                        assigned_user_id = current_user['id']  # Assign to self if no agents
+                else:  # admin
+                    # Assign to first available agent or self
+                    agent_users = [u['id'] for u in USERS.values() if u['role'] == 'agent']
+                    assigned_user_id = agent_users[0] if agent_users else current_user['id']
             
             # Create new lead
             new_lead = {
@@ -751,20 +782,66 @@ def lambda_handler(event, context):
                 "score": int(lead_data.get('score', 75)),
                 "priority": lead_data.get('priority', 'medium'),
                 "status": lead_data.get('status', 'new'),
-                "assigned_user_id": lead_data.get('assigned_user_id'),
+                "assigned_user_id": assigned_user_id,  # ✅ Fixed: Always has a valid assignment
                 "docs_sent": False,
                 "ptan": lead_data.get('ptan', ''),
                 "ein_tin": lead_data.get('ein_tin', ''),
                 "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat(),
+                "created_by": current_user['username']
             }
             
             LEADS.append(new_lead)
             NEXT_LEAD_ID += 1
             
+            print(f"✅ Lead created and assigned to user {assigned_user_id} ({get_user_by_id(assigned_user_id)['username']})")
+            
             return create_response(201, {
                 "message": "Lead created successfully",
-                "lead": new_lead
+                "lead": new_lead,
+                "assigned_to": get_user_by_id(assigned_user_id)['username']
+            })
+
+        # Search leads
+        if path == '/api/v1/leads/search' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            # Get search query parameter
+            query_params = event.get('queryStringParameters') or {}
+            search_query = query_params.get('q', '').lower().strip()
+            
+            if not search_query:
+                return create_response(400, {"detail": "Search query 'q' parameter is required"})
+            
+            # Get all leads that user can access (role-based)
+            user_role = current_user['role']
+            user_id = current_user['id']
+            
+            if user_role == 'admin':
+                accessible_leads = LEADS
+            elif user_role == 'manager':
+                managed_agent_ids = [u['id'] for u in USERS.values() if u.get('manager_id') == user_id]
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') in managed_agent_ids]
+            else:  # agent
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') == user_id]
+            
+            # Search within accessible leads
+            search_results = []
+            for lead in accessible_leads:
+                # Search in multiple fields
+                searchable_text = f"{lead.get('practice_name', '')} {lead.get('owner_name', '')} {lead.get('specialty', '')} {lead.get('city', '')} {lead.get('state', '')} {lead.get('status', '')} {lead.get('priority', '')}".lower()
+                
+                if search_query in searchable_text:
+                    search_results.append(lead)
+            
+            return create_response(200, {
+                "leads": search_results,
+                "total": len(search_results),
+                "query": search_query,
+                "searched_in": len(accessible_leads)
             })
         
         # Update lead

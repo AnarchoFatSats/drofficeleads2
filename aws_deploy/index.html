@@ -487,6 +487,8 @@
         let summaryData = {};
         let selectedLeadId = null;
         let currentUser = null;
+        let isSearchActive = false;
+        let searchResults = [];
 
         // Authentication functions
         function checkAuthentication() {
@@ -831,6 +833,72 @@
             loadData();
         }
 
+        // Search functionality
+        async function searchLeads() {
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            
+            if (!searchQuery) {
+                alert('Please enter a search term');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/leads/search?q=${encodeURIComponent(searchQuery)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to search leads');
+                }
+
+                // Update display with search results
+                searchResults = result.leads;
+                isSearchActive = true;
+                
+                renderLeadsTable(searchResults);
+                
+                // Update search status
+                document.querySelector('.section-title').innerHTML = `
+                    <i class="fas fa-search"></i>
+                    Search Results (${result.total} of ${result.searched_in} leads)
+                `;
+                
+                console.log(`✅ Search found ${result.total} results for "${searchQuery}"`);
+
+            } catch (error) {
+                console.error('❌ Search failed:', error);
+                alert(`Search failed: ${error.message}`);
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            isSearchActive = false;
+            searchResults = [];
+            
+            // Restore original view
+            renderLeadsTable(allLeads);
+            document.querySelector('.section-title').innerHTML = `
+                <i class="fas fa-users"></i>
+                Lead Management Center
+            `;
+            
+            console.log('✅ Search cleared, showing all leads');
+        }
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchLeads();
+            }
+        }
+
         function showCreateLeadModal() {
             // Clear the form
             document.getElementById('createLeadForm').reset();
@@ -979,20 +1047,30 @@
                     <i class="fas fa-users"></i>
                     Lead Management Center
                 </h2>
-                <div class="action-buttons">
-                    <button class="btn-warning" onclick="showCreateLeadModal()">
-                        <i class="fas fa-plus"></i> Create Lead
-                    </button>
-                    <button id="editLeadBtn" class="btn-primary" disabled onclick="editLead(selectedLeadId)">
-                        <i class="fas fa-edit"></i> Edit Lead
-                    </button>
-                    <button id="sendDocsBtn" class="btn-success" disabled onclick="sendDocs(selectedLeadId)">
-                        <i class="fas fa-paper-plane"></i> Send Docs
-                    </button>
-                    <button class="btn-primary" onclick="refreshLeads()">
-                        <i class="fas fa-refresh"></i> Refresh
-                    </button>
-                </div>
+                                    <div class="action-buttons">
+                        <div class="search-container" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search leads..." 
+                                   style="width: 250px;" onkeypress="handleSearchKeyPress(event)">
+                            <button class="btn-primary" onclick="searchLeads()" style="padding: 0.5rem 1rem;">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="btn-secondary" onclick="clearSearch()" style="padding: 0.5rem 1rem;" title="Clear search">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <button class="btn-warning" onclick="showCreateLeadModal()">
+                            <i class="fas fa-plus"></i> Create Lead
+                        </button>
+                        <button id="editLeadBtn" class="btn-primary" disabled onclick="editLead(selectedLeadId)">
+                            <i class="fas fa-edit"></i> Edit Lead
+                        </button>
+                        <button id="sendDocsBtn" class="btn-success" disabled onclick="sendDocs(selectedLeadId)">
+                            <i class="fas fa-paper-plane"></i> Send Docs
+                        </button>
+                        <button class="btn-primary" onclick="refreshLeads()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
             </div>
 
             <!-- Leads Table -->
