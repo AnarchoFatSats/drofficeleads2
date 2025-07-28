@@ -124,6 +124,7 @@ def lambda_handler(event, context):
         token = auth_header[7:]
     
     # Protected endpoints require authentication
+    user_data = None
     if path.startswith("/api/v1/") and path != "/api/v1/auth/login":
         if not token:
             return create_response(401, {"detail": "Authentication required"})
@@ -138,6 +139,31 @@ def lambda_handler(event, context):
             "leads": LEADS,
             "total": len(LEADS)
         })
+    
+    # Create new lead endpoint
+    if path == "/api/v1/leads" and method == "POST":
+        try:
+            new_lead = {
+                "id": len(LEADS) + 1,
+                "company_name": request_data.get("company_name", "New Practice"),
+                "contact_name": request_data.get("contact_name", ""),
+                "phone": request_data.get("phone", ""),
+                "email": request_data.get("email", ""),
+                "status": request_data.get("status", "new"),
+                "priority": request_data.get("priority", "medium"),
+                "specialty": request_data.get("specialty", ""),
+                "location": request_data.get("location", ""),
+                "score": request_data.get("score", 50),
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": user_data.get("username", "system") if user_data else "system"
+            }
+            LEADS.append(new_lead)
+            return create_response(201, {
+                "lead": new_lead,
+                "message": "Lead created successfully"
+            })
+        except Exception as e:
+            return create_response(400, {"detail": f"Error creating lead: {str(e)}"})
     
     if path.startswith("/api/v1/leads/") and method == "PUT":
         lead_id = int(path.split("/")[-1])
