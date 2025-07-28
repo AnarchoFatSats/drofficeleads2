@@ -1,6 +1,6 @@
 {
-  "name": "Cura Genesis CRM",
-  "short_name": "CRM",
+  "name": "VantagePoint",
+  "short_name": "VantagePoint",
   "description": "Advanced lead management and sales CRM system",
   "start_url": "/crm_enhanced_dashboard_v2.html",
   "display": "standalone",

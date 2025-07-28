@@ -1,6 +1,6 @@
 /*!
  * Enhanced CRM Components - Performance & User Experience
- * Advanced UI components for Cura Genesis CRM
+ * Advanced UI components for VantagePoint
  */
 
 // ====================================

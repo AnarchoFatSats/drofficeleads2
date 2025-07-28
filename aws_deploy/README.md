@@ -1,4 +1,4 @@
-# Cura Genesis Advanced CRM - AWS Deployment
+# VantagePoint Advanced CRM - AWS Deployment
 
 ## 🎯 What's New in This Version:
 

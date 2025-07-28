@@ -3,7 +3,7 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "🏥 Preparing Cura Genesis Advanced CRM"
+        - echo "🏥 Preparing VantagePoint Advanced CRM"
         - echo "Features: Login System, 20-Lead Distribution, Gamification"
     build:
       commands:

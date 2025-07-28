@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cura Genesis CRM - Lead Management</title>
+    <title>VantagePoint - Lead Management</title>
     <!-- Bootstrap CSS for modal support -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -28,11 +28,8 @@
             <div class="header-content">
                 <div class="header-main">
                     <div class="header-text">
-                        <h1><i class="fas fa-gem"></i> Cura Genesis CRM</h1>
+                        <h1><i class="fas fa-gem"></i> VantagePoint</h1>
                         <p class="subtitle">Lead Management System</p>
-                        <div class="strategy-badge">
-                            <i class="fas fa-bullseye"></i> Email + PTAN + EIN Ready
-                        </div>
                     </div>
                     <div class="header-actions">
                         <div class="user-info">
@@ -369,7 +366,7 @@
         }
 
         function canSendDocs(lead) {
-            return lead.email && lead.ptan && lead.ein_tin && 
+            return lead.email && 
                    ['CONTACTED', 'QUALIFIED'].includes(lead.status) &&
                    !lead.docs_sent;
         }
@@ -439,7 +436,7 @@
         async function sendDocs(leadId) {
             const lead = allLeads.find(l => l.id === leadId);
             if (!canSendDocs(lead)) {
-                alert('Lead must have email, PTAN, and EIN/TIN before sending docs.');
+                alert('Lead must have email and be contacted or qualified before sending docs.');
                 return;
             }
 
