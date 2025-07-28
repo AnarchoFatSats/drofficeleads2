@@ -10,6 +10,113 @@ import base64
 import hmac
 from datetime import datetime, timedelta
 import random
+import urllib3
+import urllib.parse
+
+# Configuration for external API
+EXTERNAL_API_CONFIG = {
+    "url": "https://nwabj0qrf1.execute-api.us-east-1.amazonaws.com/Prod/createUserExternal",
+    "vendor_token": "YOUR_VENDOR_TOKEN_HERE",  # This should be set in environment variables
+    "default_sales_rep": "VantagePoint Sales Team"
+}
+
+def send_docs_to_external_api(lead_data, user_info):
+    """Send lead data to external createUserExternal API"""
+    try:
+        # Map our CRM data to their API format
+        payload = {
+            "email": lead_data.get('email', f"{lead_data['practice_name'].lower().replace(' ', '.')}@{lead_data['practice_name'].lower().replace(' ', '')}.com"),
+            "baaSigned": True,  # Assume BAA needs to be signed
+            "paSigned": True,   # Assume PA needs to be signed
+            "facilityName": lead_data['practice_name'],
+            "selectedFacility": "Physician Office (11)",  # Default to physician office
+            "facilityAddress": {
+                "street": lead_data.get('address', ''),
+                "city": lead_data.get('city', ''),
+                "state": lead_data.get('state', ''),
+                "zip": lead_data.get('zip_code', ''),
+                "npi": lead_data.get('npi', ''),
+                "fax": lead_data.get('fax', lead_data.get('practice_phone', ''))
+            },
+            "facilityNPI": lead_data.get('npi', ''),
+            "facilityTIN": lead_data.get('ein_tin', ''),
+            "facilityPTAN": lead_data.get('ptan', ''),
+            "shippingContact": lead_data.get('owner_name', ''),
+            "primaryContactName": lead_data.get('owner_name', ''),
+            "primaryContactEmail": lead_data.get('email', f"{lead_data.get('owner_name', 'contact').lower().replace(' ', '.')}@{lead_data['practice_name'].lower().replace(' ', '')}.com"),
+            "primaryContactPhone": lead_data.get('owner_phone', lead_data.get('practice_phone', '')),
+            "shippingAddresses": [
+                {
+                    "street": lead_data.get('address', ''),
+                    "city": lead_data.get('city', ''),
+                    "state": lead_data.get('state', ''),
+                    "zip": lead_data.get('zip_code', '')
+                }
+            ],
+            "salesRepresentative": user_info.get('full_name', EXTERNAL_API_CONFIG['default_sales_rep']),
+            "physicianInfo": {
+                "physicianFirstName": lead_data.get('owner_name', '').split()[0] if lead_data.get('owner_name') else '',
+                "physicianLastName": ' '.join(lead_data.get('owner_name', '').split()[1:]) if len(lead_data.get('owner_name', '').split()) > 1 else '',
+                "specialty": lead_data.get('specialty', ''),
+                "npi": lead_data.get('npi', ''),
+                "street": lead_data.get('address', ''),
+                "city": lead_data.get('city', ''),
+                "state": lead_data.get('state', ''),
+                "zip": lead_data.get('zip_code', ''),
+                "contactName": lead_data.get('owner_name', ''),
+                "fax": lead_data.get('fax', lead_data.get('practice_phone', '')),
+                "phone": lead_data.get('owner_phone', lead_data.get('practice_phone', ''))
+            },
+            "additionalPhysicians": []
+        }
+        
+        # Create HTTP client
+        http = urllib3.PoolManager()
+        
+        # Prepare headers
+        headers = {
+            "Content-Type": "application/json",
+            "x-vendor-token": EXTERNAL_API_CONFIG['vendor_token']
+        }
+        
+        # Make the API call
+        response = http.request(
+            'POST',
+            EXTERNAL_API_CONFIG['url'],
+            body=json.dumps(payload),
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status == 200:
+            result = json.loads(response.data.decode('utf-8'))
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "user_id": result.get('userId'),
+                    "message": "Documents sent successfully to external company",
+                    "external_response": result
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": result.get('message', 'External API returned error'),
+                    "detail": result.get('detail', ''),
+                    "external_response": result
+                }
+        else:
+            return {
+                "success": False,
+                "message": f"API call failed with status {response.status}",
+                "detail": response.data.decode('utf-8') if response.data else 'No response data'
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to send documents to external company",
+            "detail": str(e)
+        }
 
 def create_jwt_token(username, role):
     """Create a simple JWT token"""
@@ -914,17 +1021,29 @@ def lambda_handler(event, context):
             if current_user['role'] == 'agent' and lead["assigned_user_id"] != current_user['id']:
                 return create_response(403, {"detail": "You can only send docs for your own leads"})
             
-            # Mark docs as sent
-            lead['docs_sent'] = True
-            lead['updated_at'] = datetime.utcnow().isoformat()
+            # Send to external API
+            external_result = send_docs_to_external_api(lead, current_user)
             
-            # In a real system, this would trigger actual document sending
-            return create_response(200, {
-                "message": "Documents sent successfully",
-                "email_used": lead['email'],
-                "external_user_id": f"EXT_{lead['id']}_{int(datetime.utcnow().timestamp())}",
-                "sent_at": datetime.utcnow().isoformat()
-            })
+            if external_result['success']:
+                # Mark docs as sent only if external API succeeded
+                lead['docs_sent'] = True
+                lead['updated_at'] = datetime.utcnow().isoformat()
+                
+                return create_response(200, {
+                    "message": "Documents sent successfully to external company",
+                    "email_used": lead['email'],
+                    "external_user_id": external_result.get('user_id', f"EXT_{lead['id']}_{int(datetime.utcnow().timestamp())}"),
+                    "sent_at": datetime.utcnow().isoformat(),
+                    "external_response": external_result.get('external_response', {})
+                })
+            else:
+                # Don't mark as sent if external API failed
+                return create_response(500, {
+                    "message": "Failed to send documents to external company",
+                    "error": external_result['message'],
+                    "detail": external_result.get('detail', ''),
+                    "external_response": external_result.get('external_response', {})
+                })
         
         # Create new user (admin/manager only)
         if path == '/api/v1/users' and method == 'POST':
