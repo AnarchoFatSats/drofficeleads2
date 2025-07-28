@@ -14,9 +14,12 @@ let currentUser = null;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 VantagePoint - Application Starting...');
+    console.log('📊 Initial allLeads:', Array.isArray(allLeads), allLeads.length);
     hideLoadingOverlay();
     initializeAuth();
     setupEventListeners();
+    console.log('✅ VantagePoint - Initialization Complete');
 });
 
         main
@@ -24,19 +27,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Authentication functions
 function initializeAuth() {
+    console.log('🔐 Initializing authentication...');
     authToken = localStorage.getItem('token'); // Match login.html key
     const userData = localStorage.getItem('user_data');
+    
+    console.log('🔑 Token exists:', !!authToken);
+    console.log('👤 User data exists:', !!userData);
     
     if (authToken && userData) {
         try {
             currentUser = JSON.parse(userData);
+            console.log('✅ User authenticated:', currentUser.username);
             showDashboard();
             loadData();
         } catch (e) {
-            console.error('Invalid user data:', e);
+            console.error('❌ Invalid user data:', e);
             showLogin();
         }
     } else {
+        console.log('❌ No authentication found, showing login');
         showLogin();
     }
 }
@@ -280,17 +289,21 @@ async function loadData() {
         console.log('✅ Processed data - allLeads:', allLeads.length, 'items');
         
         // Initialize the UI
+        console.log('🔧 Initializing UI components...');
         updateUserInfo(); // Update user display
         updateDashboardStats();
         populateFilterDropdowns();
         filteredLeads = [...allLeads];
+        console.log('📋 filteredLeads set:', filteredLeads.length);
         renderLeadsTable();
         updateLastUpdated();
         loadLeadDataFromStorage(); // Load disposition and notes
         
         // Force update any remaining loading states
+        console.log('🧹 Clearing remaining loading states...');
         document.querySelectorAll('.loading').forEach(el => {
             if (el.textContent.includes('Loading...')) {
+                console.log('🔄 Updating loading element:', el.textContent);
                 el.textContent = 'Ready';
             }
         });
@@ -319,25 +332,63 @@ async function loadData() {
 
 // Update dashboard statistics
 function updateDashboardStats() {
-    document.getElementById('total-leads').textContent = summaryData.total_leads?.toLocaleString() || '0';
+    console.log('📈 updateDashboardStats called');
+    console.log('📊 summaryData:', summaryData);
+    console.log('📊 allLeads type:', typeof allLeads, 'isArray:', Array.isArray(allLeads), 'length:', allLeads?.length);
+    
+    const totalLeadsEl = document.getElementById('total-leads');
+    if (totalLeadsEl) {
+        totalLeadsEl.textContent = summaryData.total_leads?.toLocaleString() || '0';
+        console.log('✅ Updated total-leads:', totalLeadsEl.textContent);
+    } else {
+        console.error('❌ total-leads element not found!');
+    }
     
     // Ensure allLeads is an array before filtering
     const leadsArray = Array.isArray(allLeads) ? allLeads : [];
+    console.log('📋 leadsArray for stats:', leadsArray.length);
     
     // Calculate missing stats from leads data if not provided by API
     const goldmines = summaryData.goldmines ?? leadsArray.filter(l => l.priority === 'high' && (l.score || 0) >= 90).length;
     const highValue = summaryData.high_value ?? leadsArray.filter(l => (l.score || 0) >= 80).length;
     const perfectScores = summaryData.perfect_scores ?? leadsArray.filter(l => (l.score || 0) === 100).length;
     
-    document.getElementById('goldmines').textContent = goldmines.toLocaleString();
-    document.getElementById('high-value').textContent = highValue.toLocaleString();
-    document.getElementById('perfect-scores').textContent = perfectScores.toLocaleString();
+    console.log('📊 Calculated stats - Goldmines:', goldmines, 'HighValue:', highValue, 'Perfect:', perfectScores);
+    
+    const goldminesEl = document.getElementById('goldmines');
+    const highValueEl = document.getElementById('high-value');
+    const perfectScoresEl = document.getElementById('perfect-scores');
+    
+    if (goldminesEl) {
+        goldminesEl.textContent = goldmines.toLocaleString();
+        console.log('✅ Updated goldmines:', goldminesEl.textContent);
+    } else {
+        console.error('❌ goldmines element not found!');
+    }
+    
+    if (highValueEl) {
+        highValueEl.textContent = highValue.toLocaleString();
+        console.log('✅ Updated high-value:', highValueEl.textContent);
+    } else {
+        console.error('❌ high-value element not found!');
+    }
+    
+    if (perfectScoresEl) {
+        perfectScoresEl.textContent = perfectScores.toLocaleString();
+        console.log('✅ Updated perfect-scores:', perfectScoresEl.textContent);
+    } else {
+        console.error('❌ perfect-scores element not found!');
+    }
 }
 
 // Populate filter dropdowns
 function populateFilterDropdowns() {
+    console.log('🔍 populateFilterDropdowns called');
+    console.log('📊 allLeads type:', typeof allLeads, 'isArray:', Array.isArray(allLeads), 'length:', allLeads?.length);
+    
     // Ensure allLeads is an array before processing
     const leadsArray = Array.isArray(allLeads) ? allLeads : [];
+    console.log('📋 leadsArray length:', leadsArray.length);
     
     // Get unique states and cities from location field if state/city don't exist
     const states = [...new Set(leadsArray.map(lead => {
