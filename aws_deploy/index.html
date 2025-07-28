@@ -496,14 +496,14 @@
                     <button type="button" style="background: none; border: none; font-size: 24px; cursor: pointer; float: right; color: #666;" onclick="closeCreateUserModal()">&times;</button>
                 </div>
                 <div style="padding: 20px;">
-                    <form id="createUserForm">
+                    <form id="createUserForm" onsubmit="createUser(); return false;">
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 500;">Username</label>
-                            <input type="text" name="username" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                            <input type="text" name="username" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required placeholder="Enter username">
                         </div>
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 500;">Full Name</label>
-                            <input type="text" name="full_name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                            <input type="text" name="full_name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required placeholder="Enter full name">
                         </div>
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 500;">Role</label>
@@ -526,8 +526,10 @@
                     </form>
                 </div>
                 <div style="padding: 15px 20px; border-top: 1px solid #ddd; text-align: right;">
-                    <button type="button" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; cursor: pointer;" onclick="closeCreateUserModal()">Cancel</button>
-                    <button type="button" style="background: var(--primary-blue); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="createUser()">Create User</button>
+                    <button type="button" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer; font-weight: 500;" onclick="closeCreateUserModal()">Cancel</button>
+                    <button type="submit" id="createUserSubmitBtn" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px;" onclick="createUser()">
+                        <i class="fas fa-user-plus" style="margin-right: 5px;"></i>Create User
+                    </button>
                 </div>
             </div>
         </div>
@@ -541,14 +543,14 @@
                 <button type="button" style="background: none; border: none; font-size: 24px; cursor: pointer; float: right; color: #666;" onclick="closeCreateAgentModal()">&times;</button>
             </div>
             <div style="padding: 20px;">
-                <form id="createAgentForm">
+                <form id="createAgentForm" onsubmit="createAgent(); return false;">
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">Username</label>
-                        <input type="text" name="username" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                        <input type="text" name="username" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required placeholder="Enter agent username">
                     </div>
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">Full Name</label>
-                        <input type="text" name="full_name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                        <input type="text" name="full_name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required placeholder="Enter agent full name">
                     </div>
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">Password</label>
@@ -558,8 +560,10 @@
                 </form>
             </div>
             <div style="padding: 15px 20px; border-top: 1px solid #ddd; text-align: right;">
-                <button type="button" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; cursor: pointer;" onclick="closeCreateAgentModal()">Cancel</button>
-                <button type="button" style="background: var(--primary-blue); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="createAgent()">Create Agent</button>
+                <button type="button" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer; font-weight: 500;" onclick="closeCreateAgentModal()">Cancel</button>
+                <button type="submit" id="createAgentSubmitBtn" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px;" onclick="createAgent()">
+                    <i class="fas fa-user-plus" style="margin-right: 5px;"></i>Create Agent
+                </button>
             </div>
         </div>
     </div>
@@ -1215,7 +1219,7 @@
             console.log('🔍 Starting user creation...');
             
             // Get form elements for loading state
-            const createButton = document.querySelector('#createUserModal .btn-primary');
+            const createButton = document.getElementById('createUserSubmitBtn');
             const originalButtonText = createButton.innerHTML;
             
             try {
@@ -1320,7 +1324,7 @@
             console.log('🔍 Starting agent creation...');
             
             // Get form elements for loading state
-            const createButton = document.querySelector('#createAgentModal .btn-primary');
+            const createButton = document.getElementById('createAgentSubmitBtn');
             const originalButtonText = createButton.innerHTML;
             
             try {
