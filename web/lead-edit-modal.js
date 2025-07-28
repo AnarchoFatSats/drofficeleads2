@@ -379,7 +379,7 @@ class LeadEditModal {
     }
 
     async updateLeadAPI(leadId, data) {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token'); // Match production key
         return fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}/${leadId}`, {
             method: 'PUT',
             headers: {

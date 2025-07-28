@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Authentication functions
 function initializeAuth() {
-    authToken = localStorage.getItem('auth_token');
+    authToken = localStorage.getItem('token'); // Match login.html key
     const userData = localStorage.getItem('user_data');
     
     if (authToken && userData) {
@@ -166,10 +166,10 @@ async function handleLogin(e) {
         
         const data = await response.json();
         
-        // Store authentication data
+        // Store authentication data (match production login.html)
         authToken = data.access_token;
         currentUser = data.user;
-        localStorage.setItem('auth_token', authToken);
+        localStorage.setItem('token', authToken); // Match production key
         localStorage.setItem('user_data', JSON.stringify(currentUser));
         
         // Show dashboard
@@ -189,6 +189,11 @@ function showDashboard() {
         updateUserInfo();
         return;
     }
+    // If we're on login page, redirect to main dashboard
+    if (window.location.pathname.includes('login.html')) {
+        window.location.href = '/index.html';
+        return;
+    }
     // Otherwise reload to get the full dashboard
     window.location.reload();
 }
@@ -205,7 +210,7 @@ function updateUserInfo() {
 function logout() {
     authToken = null;
     currentUser = null;
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token'); // Match production key
     localStorage.removeItem('user_data');
     showLogin();
 }
