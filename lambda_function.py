@@ -546,18 +546,19 @@ def assign_leads_to_new_agent(agent_id, count=20):
     return assigned_count
 
 def get_role_based_stats(user_role, user_id):
-    """Get statistics based on user role"""
+    """Get statistics based on user role with proper hierarchy tracking"""
     if user_role == "admin":
         # Admin sees all leads
         relevant_leads = LEADS
     elif user_role == "manager":
-        # Manager sees leads of their agents
+        # Manager sees leads of their agents only
         manager_agents = [user for user in USERS.values() if user.get("manager_id") == user_id]
         agent_ids = [agent["id"] for agent in manager_agents]
         relevant_leads = [lead for lead in LEADS if lead["assigned_user_id"] in agent_ids]
+        
+        print(f"📊 Manager {user_id} has {len(manager_agents)} agents with {len(relevant_leads)} total leads")
     else:  # agent
         # Agent sees their own leads + team comparison data
-        # For competitive view, agents can see team performance but not individual leads
         relevant_leads = [lead for lead in LEADS if lead["assigned_user_id"] == user_id]
     
     # Calculate stats
@@ -927,6 +928,11 @@ def lambda_handler(event, context):
         
         # Create new user (admin/manager only)
         if path == '/api/v1/users' and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             # Check permissions
             if current_user['role'] not in ['admin', 'manager']:
                 return create_response(403, {"detail": "Only admins and managers can create users"})
@@ -942,9 +948,27 @@ def lambda_handler(event, context):
             if username in USERS:
                 return create_response(400, {"detail": "Username already exists"})
             
-            # Managers can only create agents
-            if current_user['role'] == 'manager' and role != 'agent':
-                return create_response(403, {"detail": "Managers can only create agent accounts"})
+            # Managers can only create agents and only for their own team
+            if current_user['role'] == 'manager':
+                if role != 'agent':
+                    return create_response(403, {"detail": "Managers can only create agent accounts"})
+                # Managers can only add agents to their own team
+                manager_id = current_user['id']
+            else:  # admin
+                # Admin can create managers or agents
+                if role == 'agent':
+                    manager_id = new_user_data.get('manager_id')
+                    if manager_id:
+                        # Validate manager exists and is actually a manager
+                        manager_user = None
+                        for user_data in USERS.values():
+                            if user_data['id'] == manager_id and user_data['role'] == 'manager':
+                                manager_user = user_data
+                                break
+                        if not manager_user:
+                            return create_response(400, {"detail": "Invalid manager_id: Manager not found"})
+                else:  # creating manager
+                    manager_id = None
             
             # Create new user
             password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -957,7 +981,7 @@ def lambda_handler(event, context):
                 "full_name": new_user_data.get('full_name', username.title()),
                 "is_active": True,
                 "created_at": datetime.utcnow().isoformat(),
-                "manager_id": current_user['id'] if current_user['role'] == 'manager' else new_user_data.get('manager_id')
+                "manager_id": manager_id
             }
             
             USERS[username] = new_user
@@ -975,8 +999,36 @@ def lambda_handler(event, context):
                 "leads_assigned": assigned_count
             })
         
+        # Get available managers (for admin user creation)
+        if path == '/api/v1/managers' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Only admins can view managers list"})
+            
+            managers = [
+                {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "full_name": user["full_name"],
+                    "agent_count": len([u for u in USERS.values() if u.get("manager_id") == user["id"]])
+                }
+                for user in USERS.values() 
+                if user["role"] == "manager"
+            ]
+            
+            return create_response(200, {"managers": managers})
+        
         # Get role-based dashboard stats
         if path == '/api/v1/summary' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             stats = get_role_based_stats(current_user['role'], current_user['id'])
             return create_response(200, stats)
         

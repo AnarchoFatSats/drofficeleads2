@@ -576,7 +576,8 @@
                 ME: '/api/v1/auth/me',
                 LEADS: '/api/v1/leads',
                 USERS: '/api/v1/users',
-                SUMMARY: '/api/v1/summary'
+                SUMMARY: '/api/v1/summary',
+                MANAGERS: '/api/v1/managers'
             }
         };
 
@@ -1103,10 +1104,33 @@
         }
 
         async function loadManagersForSelection() {
-            // For now, hard-coded manager1. In a full system, you'd fetch all managers
-            const managerSelect = document.getElementById('managerSelect');
-            managerSelect.innerHTML = '<option value="">Select Manager...</option>';
-            managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.MANAGERS}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const managerSelect = document.getElementById('managerSelect');
+                managerSelect.innerHTML = '<option value="">Select Manager...</option>';
+
+                if (response.ok) {
+                    const data = await response.json();
+                    data.managers.forEach(manager => {
+                        managerSelect.innerHTML += `<option value="${manager.id}">${manager.full_name} (${manager.username}) - ${manager.agent_count} agents</option>`;
+                    });
+                } else {
+                    console.warn('Failed to load managers, using fallback');
+                    managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+                }
+            } catch (error) {
+                console.error('Error loading managers:', error);
+                const managerSelect = document.getElementById('managerSelect');
+                managerSelect.innerHTML = '<option value="">Select Manager...</option>';
+                managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+            }
         }
 
         async function createUser() {
