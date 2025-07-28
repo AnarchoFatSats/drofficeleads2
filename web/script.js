@@ -254,14 +254,30 @@ async function loadData() {
     try {
         showLoadingOverlay();
         
-        // Load all data from API endpoints
-        const [leadsData, summaryResponse] = await Promise.all([
-            apiCall(CONFIG.ENDPOINTS.LEADS),
-            apiCall(CONFIG.ENDPOINTS.SUMMARY)
+        console.log('🔄 Loading data from API...');
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('API timeout after 10 seconds')), 10000)
+        );
+        
+        // Load all data from API endpoints with timeout
+        const [leadsData, summaryResponse] = await Promise.race([
+            Promise.all([
+                apiCall(CONFIG.ENDPOINTS.LEADS),
+                apiCall(CONFIG.ENDPOINTS.SUMMARY)
+            ]),
+            timeoutPromise
         ]);
 
-        allLeads = leadsData.leads || [];
-        summaryData = summaryResponse;
+        console.log('📊 API Response - Leads:', leadsData);
+        console.log('📈 API Response - Summary:', summaryResponse);
+
+        // Ensure we have valid data
+        allLeads = Array.isArray(leadsData?.leads) ? leadsData.leads : [];
+        summaryData = summaryResponse || {};
+        
+        console.log('✅ Processed data - allLeads:', allLeads.length, 'items');
         
         // Initialize the UI
         updateUserInfo(); // Update user display
@@ -272,21 +288,46 @@ async function loadData() {
         updateLastUpdated();
         loadLeadDataFromStorage(); // Load disposition and notes
         
+        // Force update any remaining loading states
+        document.querySelectorAll('.loading').forEach(el => {
+            if (el.textContent.includes('Loading...')) {
+                el.textContent = 'Ready';
+            }
+        });
+        
+        console.log('🎉 Data loading complete!');
         hideLoadingOverlay();
     } catch (error) {
-        console.error('Error loading data:', error);
-        showError('Failed to load data. Please refresh the page.');
+        console.error('❌ Error loading data:', error);
+        
+        // Initialize with empty data to prevent further errors
+        allLeads = [];
+        filteredLeads = [];
+        summaryData = { total_leads: 0, new_leads: 0, contacted_leads: 0, high_priority: 0 };
+        
+        // Update UI with empty state
+        updateDashboardStats();
+        renderLeadsTable();
+        
+        showError(`Failed to load data: ${error.message}. Please refresh the page.`);
         hideLoadingOverlay();
+    } finally {
+        // Ensure loading overlay is always hidden
+        setTimeout(() => hideLoadingOverlay(), 100);
     }
 }
 
 // Update dashboard statistics
 function updateDashboardStats() {
     document.getElementById('total-leads').textContent = summaryData.total_leads?.toLocaleString() || '0';
+    
+    // Ensure allLeads is an array before filtering
+    const leadsArray = Array.isArray(allLeads) ? allLeads : [];
+    
     // Calculate missing stats from leads data if not provided by API
-    const goldmines = summaryData.goldmines ?? allLeads.filter(l => l.priority === 'high' && (l.score || 0) >= 90).length;
-    const highValue = summaryData.high_value ?? allLeads.filter(l => (l.score || 0) >= 80).length;
-    const perfectScores = summaryData.perfect_scores ?? allLeads.filter(l => (l.score || 0) === 100).length;
+    const goldmines = summaryData.goldmines ?? leadsArray.filter(l => l.priority === 'high' && (l.score || 0) >= 90).length;
+    const highValue = summaryData.high_value ?? leadsArray.filter(l => (l.score || 0) >= 80).length;
+    const perfectScores = summaryData.perfect_scores ?? leadsArray.filter(l => (l.score || 0) === 100).length;
     
     document.getElementById('goldmines').textContent = goldmines.toLocaleString();
     document.getElementById('high-value').textContent = highValue.toLocaleString();
@@ -295,8 +336,11 @@ function updateDashboardStats() {
 
 // Populate filter dropdowns
 function populateFilterDropdowns() {
+    // Ensure allLeads is an array before processing
+    const leadsArray = Array.isArray(allLeads) ? allLeads : [];
+    
     // Get unique states and cities from location field if state/city don't exist
-    const states = [...new Set(allLeads.map(lead => {
+    const states = [...new Set(leadsArray.map(lead => {
         if (lead.state) return lead.state;
         // Extract state from location field like "Rural County, TX"
         const location = lead.location || '';
@@ -304,7 +348,7 @@ function populateFilterDropdowns() {
         return parts.length > 1 ? parts[parts.length - 1].trim() : '';
     }).filter(state => state && state !== 'N/A'))].sort();
     
-    const cities = [...new Set(allLeads.map(lead => {
+    const cities = [...new Set(leadsArray.map(lead => {
         if (lead.city) return lead.city;
         // Extract city from location field
         const location = lead.location || '';
@@ -539,7 +583,8 @@ function collapseAllLeads() {
 function renderLeadsTable() {
     const tbody = document.getElementById('leads-tbody');
     
-    if (filteredLeads.length === 0) {
+    // Ensure filteredLeads is an array
+    if (!Array.isArray(filteredLeads) || filteredLeads.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" class="loading">No leads match your filters.</td></tr>';
         return;
     }
