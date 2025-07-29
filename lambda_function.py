@@ -16,26 +16,26 @@ import urllib.parse
 # Configuration for external API
 EXTERNAL_API_CONFIG = {
     "url": "https://nwabj0qrf1.execute-api.us-east-1.amazonaws.com/Prod/createUserExternal",
-    "vendor_token": "YOUR_VENDOR_TOKEN_HERE",  # This should be set in environment variables
+    "vendor_token": "Nb9sQCZnrAxAxS4KrysMLzRUQ2HN21hbZmpshgZYb1cT7sEPdJkNEE_MhfB59pDt",  # Real vendor token provided
     "default_sales_rep": "VantagePoint Sales Team"
 }
 
 def send_docs_to_external_api(lead_data, user_info):
     """Send lead data to external createUserExternal API"""
     try:
-        # Map our CRM data to their API format
+        # Map our CRM data to their API format (per specification)
         payload = {
             "email": lead_data.get('email', f"{lead_data['practice_name'].lower().replace(' ', '.')}@{lead_data['practice_name'].lower().replace(' ', '')}.com"),
             "baaSigned": True,  # Assume BAA needs to be signed
             "paSigned": True,   # Assume PA needs to be signed
             "facilityName": lead_data['practice_name'],
-            "selectedFacility": "Physician Office (11)",  # Default to physician office
+            "selectedFacility": "Physician Office (11)",  # Default to physician office per spec
             "facilityAddress": {
                 "street": lead_data.get('address', ''),
                 "city": lead_data.get('city', ''),
                 "state": lead_data.get('state', ''),
                 "zip": lead_data.get('zip_code', ''),
-                "npi": lead_data.get('npi', ''),
+                "npi": lead_data.get('npi', ''),  # NPI in address per API bug note
                 "fax": lead_data.get('fax', lead_data.get('practice_phone', ''))
             },
             "facilityNPI": lead_data.get('npi', ''),
@@ -67,7 +67,7 @@ def send_docs_to_external_api(lead_data, user_info):
                 "fax": lead_data.get('fax', lead_data.get('practice_phone', '')),
                 "phone": lead_data.get('owner_phone', lead_data.get('practice_phone', ''))
             },
-            "additionalPhysicians": []
+            "additionalPhysicians": []  # Empty array per spec
         }
         
         # Create HTTP client
