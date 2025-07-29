@@ -387,6 +387,33 @@ def lambda_handler(event, context):
                 }
             })
         
+        # Get current user info endpoint (for token validation)
+        if path == '/api/v1/auth/me' and method == 'GET':
+            # Extract user from token
+            auth_header = headers.get("authorization", headers.get("Authorization", ""))
+            if not auth_header.startswith("Bearer "):
+                return create_response(401, {"detail": "Authentication required"})
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_jwt_token(token)
+            if not payload:
+                return create_response(401, {"detail": "Invalid token"})
+            
+            # Get user from DynamoDB
+            user = get_user(payload.get("username"))
+            if not user:
+                return create_response(401, {"detail": "User not found"})
+            
+            return create_response(200, {
+                "username": user['username'],
+                "email": user['email'],
+                "role": user['role'],
+                "full_name": user.get('full_name', user['username']),
+                "id": user['id'],
+                "is_active": user.get('is_active', True),
+                "created_at": user.get('created_at', '')
+            })
+        
         # Protected endpoints require authentication
         current_user = get_current_user_from_token(headers)
         if not current_user:
