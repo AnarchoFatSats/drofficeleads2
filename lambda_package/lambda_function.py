@@ -517,6 +517,37 @@ def lambda_handler(event, context):
                 "storage": "DynamoDB"
             })
         
+        # Leads endpoint - GET all leads
+        if path == '/api/v1/leads' and method == 'GET':
+            return create_response(200, {
+                "leads": LEADS,
+                "total_leads": len(LEADS),
+                "message": "Leads retrieved successfully"
+            })
+        
+        # Summary endpoint - Dashboard statistics
+        if path == '/api/v1/summary' and method == 'GET':
+            status_counts = {}
+            priority_counts = {}
+            
+            for lead in LEADS:
+                status = lead.get("status", "unknown")
+                priority = lead.get("priority", "unknown")
+                
+                status_counts[status] = status_counts.get(status, 0) + 1
+                priority_counts[priority] = priority_counts.get(priority, 0) + 1
+            
+            return create_response(200, {
+                "total_leads": len(LEADS),
+                "status_breakdown": status_counts,
+                "priority_breakdown": priority_counts,
+                "new_leads": status_counts.get("new", 0),
+                "contacted_leads": status_counts.get("contacted", 0),
+                "high_priority": priority_counts.get("high", 0),
+                "users_count": len(get_all_users()),
+                "message": "Summary statistics retrieved successfully"
+            })
+        
         # Default response
         return create_response(404, {"detail": "Endpoint not found"})
         
