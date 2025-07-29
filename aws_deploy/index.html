@@ -764,13 +764,25 @@
                 document.getElementById('username-display').textContent = user.full_name || user.username;
                 
                 console.log('🔍 Step 4: Calling showUserManagementButtons...');
-                showUserManagementButtons(); // Show appropriate buttons based on role
+                try {
+                    showUserManagementButtons(); // Show appropriate buttons based on role
+                } catch (buttonError) {
+                    console.error('Error showing user management buttons:', buttonError);
+                    // Don't redirect for UI button errors
+                }
                 
                 console.log('🔍 Step 5: Calling loadData...');
-                await loadData();
+                try {
+                    await loadData();
+                    console.log('✅ Data loading complete!');
+                } catch (dataError) {
+                    console.error('🚨 Data loading failed:', dataError);
+                    // Don't redirect for data loading errors - user is still authenticated
+                    // Just show an error message instead
+                    console.log('⚠️ User is authenticated but data loading failed');
+                }
                 
-                console.log('✅ Authentication and data loading complete!');
-                
+                console.log('✅ Authentication complete!');
                 return true;
                 
             } catch (error) {
