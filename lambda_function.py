@@ -1141,6 +1141,77 @@ def lambda_handler(event, context):
             
             return create_response(200, {"managers": managers})
         
+        # Get organizational structure (admin only)
+        if path == '/api/v1/organization' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Only admins can view organizational structure"})
+            
+            # Build organizational tree
+            managers = []
+            unassigned_agents = []
+            
+            for user in USERS.values():
+                if user["role"] == "manager":
+                    # Get agents under this manager
+                    agents = [
+                        {
+                            "id": agent["id"],
+                            "username": agent["username"],
+                            "full_name": agent["full_name"],
+                            "email": agent["email"],
+                            "is_active": agent["is_active"],
+                            "created_at": agent["created_at"],
+                            "lead_count": len([l for l in LEADS if l["assigned_user_id"] == agent["id"]]),
+                            "sales_count": len([l for l in LEADS if l["assigned_user_id"] == agent["id"] and l["status"] in ["sold", "disposed"]])
+                        }
+                        for agent in USERS.values() 
+                        if agent["role"] == "agent" and agent.get("manager_id") == user["id"]
+                    ]
+                    
+                    # Calculate manager team stats
+                    team_leads = sum(agent["lead_count"] for agent in agents)
+                    team_sales = sum(agent["sales_count"] for agent in agents)
+                    team_conversion = round((team_sales / team_leads * 100) if team_leads > 0 else 0, 1)
+                    
+                    managers.append({
+                        "id": user["id"],
+                        "username": user["username"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "is_active": user["is_active"],
+                        "created_at": user["created_at"],
+                        "agent_count": len(agents),
+                        "team_leads": team_leads,
+                        "team_sales": team_sales,
+                        "team_conversion_rate": team_conversion,
+                        "agents": agents
+                    })
+                elif user["role"] == "agent" and not user.get("manager_id"):
+                    # Unassigned agents
+                    unassigned_agents.append({
+                        "id": user["id"],
+                        "username": user["username"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "is_active": user["is_active"],
+                        "created_at": user["created_at"],
+                        "lead_count": len([l for l in LEADS if l["assigned_user_id"] == user["id"]]),
+                        "sales_count": len([l for l in LEADS if l["assigned_user_id"] == user["id"] and l["status"] in ["sold", "disposed"]])
+                    })
+            
+            return create_response(200, {
+                "managers": managers,
+                "unassigned_agents": unassigned_agents,
+                "total_managers": len(managers),
+                "total_agents": len([u for u in USERS.values() if u["role"] == "agent"]),
+                "total_admins": len([u for u in USERS.values() if u["role"] == "admin"])
+            })
+        
         # Get role-based dashboard stats
         if path == '/api/v1/summary' and method == 'GET':
             current_user = get_current_user_from_token(headers)
