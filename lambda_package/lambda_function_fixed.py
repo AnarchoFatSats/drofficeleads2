@@ -12,21 +12,10 @@ from datetime import datetime, timedelta
 import random
 import boto3
 from botocore.exceptions import ClientError
-from decimal import Decimal
 
 # DynamoDB client for persistent user storage
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 users_table = dynamodb.Table('vantagepoint-users')
-
-# Helper function to handle DynamoDB Decimal types in JSON
-def decimal_default(obj):
-    if isinstance(obj, Decimal):
-        return int(obj) if obj % 1 == 0 else float(obj)
-    raise TypeError
-
-def json_dumps(obj):
-    """JSON dumps that handles DynamoDB Decimal types"""
-    return json.dumps(obj, default=decimal_default)
 
 def create_jwt_token(username, role):
     """Create a simple JWT token"""
@@ -323,7 +312,7 @@ def lambda_handler(event, context):
             return {
                 'statusCode': status_code,
                 'headers': response_headers,
-                'body': json_dumps(body_dict)
+                'body': json.dumps(body_dict)
             }
         
         def get_current_user_from_token(headers):
