@@ -730,38 +730,56 @@
         let searchResults = [];
 
         // Authentication functions
-        function checkAuthentication() {
+        async function checkAuthentication() {
             const token = localStorage.getItem('token');
+            console.log('🔐 Checking authentication, token exists:', !!token);
+            
             if (!token) {
+                console.log('❌ No token found, redirecting to login');
                 window.location.href = 'login.html';
                 return false;
             }
 
-            // Verify token with backend
-            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            .then(response => {
+            try {
+                console.log('🔍 Step 1: Making /auth/me request...');
+                
+                // Verify token with backend
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('🔍 Step 2: /auth/me response status:', response.status);
+                
                 if (!response.ok) {
+                    console.log('❌ /auth/me failed with status:', response.status);
                     throw new Error('Token invalid');
                 }
-                return response.json();
-            })
-            .then(user => {
+                
+                const user = await response.json();
+                console.log('🔍 Step 3: User data received:', user);
+                
                 currentUser = user;
                 document.getElementById('username-display').textContent = user.full_name || user.username;
+                
+                console.log('🔍 Step 4: Calling showUserManagementButtons...');
                 showUserManagementButtons(); // Show appropriate buttons based on role
-                loadData();
-            })
-            .catch(error => {
-                console.error('Authentication failed:', error);
+                
+                console.log('🔍 Step 5: Calling loadData...');
+                await loadData();
+                
+                console.log('✅ Authentication and data loading complete!');
+                
+                return true;
+                
+            } catch (error) {
+                console.error('🚨 Authentication failed at step:', error.message);
+                console.error('🚨 Full error:', error);
                 localStorage.removeItem('token');
                 window.location.href = 'login.html';
-            });
-
-            return true;
+                return false;
+            }
         }
 
         function logout() {
@@ -1607,7 +1625,15 @@
                 }
                     }, 1000);
         
-        checkAuthentication();
+        // Initialize authentication when page loads
+        (async function() {
+            try {
+                await checkAuthentication();
+            } catch (error) {
+                console.error('Failed to initialize authentication:', error);
+                window.location.href = 'login.html';
+            }
+        })();
 
         // ============================================
         // Organizational Structure Functions

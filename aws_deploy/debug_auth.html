@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VantagePoint CRM - Auth Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 VantagePoint CRM - Authentication Debug</h1>
+        <p>This page helps diagnose authentication issues by testing each step of the login flow.</p>
+        
+        <div id="results"></div>
+        
+        <button onclick="testFullAuthFlow()">🧪 Test Full Auth Flow</button>
+        <button onclick="testStoredToken()">🔑 Test Stored Token</button>
+        <button onclick="clearStorage()">🗑️ Clear Storage</button>
+        <button onclick="location.href='login.html'">🔐 Go to Login</button>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://api.vantagepointcrm.com';
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testFullAuthFlow() {
+            clearResults();
+            addResult('🧪 Starting Full Authentication Flow Test...', 'info');
+            
+            try {
+                // Step 1: Test login
+                addResult('1️⃣ Testing login...', 'info');
+                const loginResponse = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!loginResponse.ok) {
+                    addResult(`❌ Login failed: ${loginResponse.status}`, 'error');
+                    return;
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                addResult(`✅ Login successful! Token received.`, 'success');
+                addResult(`<pre>Login Response: ${JSON.stringify(loginData, null, 2)}</pre>`, 'info');
+                
+                // Step 2: Store token (simulate what login.html does)
+                localStorage.setItem('token', token);
+                addResult('✅ Token stored in localStorage', 'success');
+                
+                // Step 3: Test token validation (simulate what index.html does)
+                addResult('2️⃣ Testing token validation (/api/v1/auth/me)...', 'info');
+                const meResponse = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!meResponse.ok) {
+                    addResult(`❌ Token validation failed: ${meResponse.status}`, 'error');
+                    const errorText = await meResponse.text();
+                    addResult(`<pre>Error: ${errorText}</pre>`, 'error');
+                    return;
+                }
+                
+                const userData = await meResponse.json();
+                addResult(`✅ Token validation successful!`, 'success');
+                addResult(`<pre>User Data: ${JSON.stringify(userData, null, 2)}</pre>`, 'info');
+                
+                // Step 4: Test protected endpoint
+                addResult('3️⃣ Testing protected endpoint (/api/v1/leads)...', 'info');
+                const leadsResponse = await fetch(`${API_BASE_URL}/api/v1/leads`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!leadsResponse.ok) {
+                    addResult(`❌ Protected endpoint failed: ${leadsResponse.status}`, 'error');
+                    return;
+                }
+                
+                const leadsData = await leadsResponse.json();
+                addResult(`✅ Protected endpoint working!`, 'success');
+                addResult(`<pre>Leads Data: ${JSON.stringify(leadsData, null, 2)}</pre>`, 'info');
+                
+                addResult('🎉 FULL AUTHENTICATION FLOW: SUCCESS!', 'success');
+                addResult('The backend authentication is working perfectly. If you\'re still getting redirects, it\'s likely a frontend cache issue.', 'info');
+                
+            } catch (error) {
+                addResult(`❌ Error during test: ${error.message}`, 'error');
+                console.error('Auth test error:', error);
+            }
+        }
+        
+        async function testStoredToken() {
+            clearResults();
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                addResult('❌ No token found in localStorage', 'error');
+                return;
+            }
+            
+            addResult(`✅ Token found in localStorage: ${token.substring(0, 50)}...`, 'success');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    addResult(`❌ Stored token is invalid: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const userData = await response.json();
+                addResult('✅ Stored token is valid!', 'success');
+                addResult(`<pre>User: ${JSON.stringify(userData, null, 2)}</pre>`, 'info');
+                
+            } catch (error) {
+                addResult(`❌ Error testing stored token: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('token');
+            addResult('🗑️ Cleared token from localStorage', 'info');
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            addResult('🔍 VantagePoint CRM Authentication Debugger Ready', 'info');
+            addResult('Click "Test Full Auth Flow" to diagnose authentication issues.', 'info');
+        });
+    </script>
+</body>
+</html> 
