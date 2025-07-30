@@ -990,6 +990,170 @@ def lambda_handler(event, context):
                 "message": "Leads retrieved successfully"
             })
         
+        # Leads endpoint - POST create new lead
+        if path == '/api/v1/leads' and method == 'POST':
+            # Extract user from token for permissions
+            auth_header = headers.get("authorization", headers.get("Authorization", ""))
+            if not auth_header.startswith("Bearer "):
+                return create_response(401, {"detail": "Authentication required"})
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_jwt_token(token)
+            if not payload:
+                return create_response(401, {"detail": "Invalid token"})
+            
+            current_user = get_user(payload.get("username"))
+            if not current_user:
+                return create_response(401, {"detail": "User not found"})
+            
+            # Parse request data
+            try:
+                lead_data = json.loads(event.get('body', '{}'))
+            except:
+                return create_response(400, {"detail": "Invalid JSON data"})
+            
+            # Generate new lead ID
+            global NEXT_LEAD_ID
+            new_lead_id = NEXT_LEAD_ID
+            NEXT_LEAD_ID += 1
+            
+            # Auto-assign if not provided
+            assigned_user_id = lead_data.get('assigned_user_id')
+            if not assigned_user_id:
+                if current_user['role'] == 'agent':
+                    assigned_user_id = current_user['id']
+                elif current_user['role'] == 'manager':
+                    # Assign to self or first agent under manager
+                    agent_users = [u for u in get_all_users() if u['role'] == 'agent' and u.get('manager_id') == current_user['id']]
+                    assigned_user_id = agent_users[0]['id'] if agent_users else current_user['id']
+                elif current_user['role'] == 'admin':
+                    # Assign to first available agent
+                    agent_users = [u for u in get_all_users() if u['role'] == 'agent']
+                    assigned_user_id = agent_users[0]['id'] if agent_users else current_user['id']
+            
+            # Create new lead
+            new_lead = {
+                "id": new_lead_id,
+                "practice_name": lead_data.get('practice_name', 'Unknown Practice'),
+                "owner_name": lead_data.get('owner_name', 'Unknown Doctor'),
+                "practice_phone": lead_data.get('practice_phone', ''),
+                "email": lead_data.get('email', ''),
+                "address": lead_data.get('address', ''),
+                "city": lead_data.get('city', ''),
+                "state": lead_data.get('state', ''),
+                "zip_code": lead_data.get('zip_code', ''),
+                "specialty": lead_data.get('specialty', ''),
+                "score": int(lead_data.get('score', 75)),
+                "priority": lead_data.get('priority', 'medium'),
+                "status": lead_data.get('status', 'new'),
+                "assigned_user_id": assigned_user_id,
+                "docs_sent": False,
+                "ptan": lead_data.get('ptan', ''),
+                "ein_tin": lead_data.get('ein_tin', ''),
+                "npi": lead_data.get('npi', ''),
+                "source": lead_data.get('source', 'api'),
+                "created_at": datetime.utcnow().isoformat() + "Z",
+                "updated_at": datetime.utcnow().isoformat() + "Z",
+                "created_by": current_user['username']
+            }
+            
+            # Add to leads list
+            LEADS.append(new_lead)
+            
+            print(f"✅ Lead created: {new_lead['practice_name']} (ID: {new_lead_id}) → User {assigned_user_id}")
+            
+            return create_response(201, {
+                "lead": new_lead,
+                "message": "Lead created successfully"
+            })
+        
+        # Bulk upload endpoint - POST create multiple leads
+        if path == '/api/v1/leads/bulk' and method == 'POST':
+            # Extract user from token for permissions
+            auth_header = headers.get("authorization", headers.get("Authorization", ""))
+            if not auth_header.startswith("Bearer "):
+                return create_response(401, {"detail": "Authentication required"})
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_jwt_token(token)
+            if not payload:
+                return create_response(401, {"detail": "Invalid token"})
+            
+            current_user = get_user(payload.get("username"))
+            if not current_user:
+                return create_response(401, {"detail": "User not found"})
+            
+            # Only admins can bulk upload
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Only admins can bulk upload leads"})
+            
+            # Parse request data
+            try:
+                request_data = json.loads(event.get('body', '{}'))
+                leads_data = request_data.get('leads', [])
+            except:
+                return create_response(400, {"detail": "Invalid JSON data"})
+            
+            if not leads_data:
+                return create_response(400, {"detail": "No leads data provided"})
+            
+            # Process leads in batch
+            global NEXT_LEAD_ID
+            created_leads = []
+            failed_leads = []
+            
+            for lead_data in leads_data:
+                try:
+                    # Generate new lead ID
+                    new_lead_id = NEXT_LEAD_ID
+                    NEXT_LEAD_ID += 1
+                    
+                    # Create new lead
+                    new_lead = {
+                        "id": new_lead_id,
+                        "practice_name": lead_data.get('practice_name', 'Unknown Practice'),
+                        "owner_name": lead_data.get('owner_name', 'Unknown Doctor'),
+                        "practice_phone": lead_data.get('practice_phone', ''),
+                        "email": lead_data.get('email', ''),
+                        "address": lead_data.get('address', ''),
+                        "city": lead_data.get('city', ''),
+                        "state": lead_data.get('state', ''),
+                        "zip_code": lead_data.get('zip_code', ''),
+                        "specialty": lead_data.get('specialty', ''),
+                        "score": int(lead_data.get('score', 75)),
+                        "priority": lead_data.get('priority', 'medium'),
+                        "status": lead_data.get('status', 'new'),
+                        "assigned_user_id": lead_data.get('assigned_user_id'),  # Will be distributed later
+                        "docs_sent": False,
+                        "ptan": lead_data.get('ptan', ''),
+                        "ein_tin": lead_data.get('ein_tin', ''),
+                        "npi": lead_data.get('npi', ''),
+                        "source": lead_data.get('source', 'bulk_upload'),
+                        "created_at": datetime.utcnow().isoformat() + "Z",
+                        "updated_at": datetime.utcnow().isoformat() + "Z",
+                        "created_by": current_user['username']
+                    }
+                    
+                    # Add to leads list
+                    LEADS.append(new_lead)
+                    created_leads.append(new_lead)
+                    
+                except Exception as e:
+                    failed_leads.append({
+                        "data": lead_data,
+                        "error": str(e)
+                    })
+            
+            print(f"✅ Bulk upload: {len(created_leads)} created, {len(failed_leads)} failed")
+            
+            return create_response(201, {
+                "message": f"Bulk upload completed: {len(created_leads)} leads created, {len(failed_leads)} failed",
+                "created_count": len(created_leads),
+                "failed_count": len(failed_leads),
+                "total_leads": len(LEADS),
+                "failed_leads": failed_leads[:5]  # Show first 5 failures for debugging
+            })
+        
         # Summary endpoint - Dashboard statistics
         if path == '/api/v1/summary' and method == 'GET':
             status_counts = {}
