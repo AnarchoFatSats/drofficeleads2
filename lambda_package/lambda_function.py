@@ -1092,7 +1092,7 @@ def lambda_handler(event, context):
                     "full_name": new_user["full_name"]
                 },
                 "hopper_system": {
-                    "leads_assigned": assigned_count,
+                "leads_assigned": assigned_count,
                     "auto_assignment": role == 'agent',
                     "message": message if role == 'agent' else None
                 },
