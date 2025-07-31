@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Complete VantagePoint CRM Lambda - Production Ready with DynamoDB User Persistence
-FIXED: Users now stored in DynamoDB instead of memory - survives Lambda restarts
+Complete VantagePoint CRM Lambda - Production Ready with Lead Hopper System
+FEATURES: DynamoDB User Persistence + Automated Lead Distribution + 24hr Recycling
 """
 
 import json
@@ -172,7 +172,171 @@ def get_next_user_id():
     return max_id + 1
 
 # Auto-incrementing IDs - Initialize based on existing data
-NEXT_LEAD_ID = 20  # Start after existing leads
+NEXT_LEAD_ID = 400  # Start after bulk uploaded leads
+
+# ===================================================================
+# 🔄 LEAD HOPPER & DISTRIBUTION SYSTEM
+# ===================================================================
+
+class LeadHopperSystem:
+    """Manages the central lead pool and automatic distribution"""
+    
+    def __init__(self):
+        self.max_leads_per_agent = 20
+        self.recycling_hours = 24
+        self.max_recycling_attempts = 3
+        
+    def get_hopper_leads(self, leads_data):
+        """Get all unassigned leads available in the hopper"""
+        hopper_leads = []
+        
+        for lead in leads_data:
+            # Lead is in hopper if:
+            # 1. Not assigned to anyone, OR
+            # 2. Assigned but past 24hr recycling time, OR  
+            # 3. Marked as recycled
+            if (lead.get('assigned_user_id') is None or 
+                self._is_lead_recyclable(lead) or
+                lead.get('status') == 'recycled'):
+                
+                # Don't include leads that have been recycled too many times
+                if lead.get('times_recycled', 0) < self.max_recycling_attempts:
+                    # Don't include closed leads
+                    if lead.get('status') not in ['closed_won', 'closed_lost', 'appointment_set']:
+                        hopper_leads.append(lead)
+        
+        # Sort by priority and score (best leads first)
+        return sorted(hopper_leads, key=lambda x: (
+            self._priority_score(x.get('priority', 'low')),
+            x.get('score', 0)
+        ), reverse=True)
+    
+    def _priority_score(self, priority):
+        """Convert priority to numeric score for sorting"""
+        priority_map = {'high': 3, 'medium': 2, 'low': 1}
+        return priority_map.get(priority.lower(), 1)
+    
+    def _is_lead_recyclable(self, lead):
+        """Check if a lead should be recycled back to hopper"""
+        if not lead.get('assigned_at'):
+            return True  # No assignment time = should be in hopper
+            
+        try:
+            assigned_time = datetime.fromisoformat(lead['assigned_at'].replace('Z', '+00:00'))
+            time_limit = assigned_time + timedelta(hours=self.recycling_hours)
+            current_time = datetime.utcnow().replace(tzinfo=assigned_time.tzinfo)
+            
+            # Check if 24 hours have passed AND lead hasn't been touched
+            if current_time > time_limit:
+                # If lead has been touched recently, give more time
+                if lead.get('last_touched'):
+                    last_touched = datetime.fromisoformat(lead['last_touched'].replace('Z', '+00:00'))
+                    if current_time - last_touched < timedelta(hours=24):
+                        return False  # Give more time if recently touched
+                
+                # Lead is recyclable if not protected by appointment
+                return lead.get('status') != 'appointment_set'
+                
+        except Exception as e:
+            print(f"Error checking recyclable status: {e}")
+            return True  # Default to recyclable on error
+            
+        return False
+    
+    def assign_leads_to_agent(self, agent_id, leads_data, count=None):
+        """Assign leads from hopper to an agent"""
+        if count is None:
+            count = self.max_leads_per_agent
+            
+        # Get current agent leads (not recycled)
+        current_agent_leads = [
+            lead for lead in leads_data 
+            if (lead.get('assigned_user_id') == agent_id and 
+                lead.get('status') not in ['recycled', 'closed_won', 'closed_lost'] and
+                not self._is_lead_recyclable(lead))
+        ]
+        
+        current_count = len(current_agent_leads)
+        needed_leads = max(0, count - current_count)
+        
+        if needed_leads == 0:
+            return 0, f"Agent already has {current_count} active leads"
+        
+        # Get available leads from hopper
+        hopper_leads = self.get_hopper_leads(leads_data)
+        
+        # Filter out leads this agent has worked before (to avoid immediate reassignment)
+        available_leads = [
+            lead for lead in hopper_leads
+            if agent_id not in lead.get('previous_agents', [])
+        ]
+        
+        # If no fresh leads, allow leads they've worked before (second chance)
+        if len(available_leads) < needed_leads:
+            available_leads = hopper_leads
+        
+        # Assign the needed leads
+        assigned_count = 0
+        current_time = datetime.utcnow().isoformat() + 'Z'
+        
+        for lead in available_leads[:needed_leads]:
+            # Update lead assignment
+            lead['assigned_user_id'] = agent_id
+            lead['assigned_at'] = current_time
+            lead['status'] = 'assigned'
+            lead['last_touched'] = current_time
+            
+            # Track previous agents
+            if 'previous_agents' not in lead:
+                lead['previous_agents'] = []
+            if agent_id not in lead['previous_agents']:
+                lead['previous_agents'].append(agent_id)
+                
+            assigned_count += 1
+        
+        return assigned_count, f"Assigned {assigned_count} leads to agent {agent_id}"
+    
+    def handle_lead_disposition(self, lead_id, disposition, agent_id, leads_data):
+        """Handle agent disposition of a lead"""
+        lead = next((l for l in leads_data if l.get('id') == lead_id), None)
+        if not lead:
+            return False, "Lead not found"
+        
+        if lead.get('assigned_user_id') != agent_id:
+            return False, "Lead not assigned to this agent"
+        
+        current_time = datetime.utcnow().isoformat() + 'Z'
+        lead['last_touched'] = current_time
+        lead['disposition_date'] = current_time
+        
+        if disposition.lower() == 'appointment_set':
+            # Protect lead - stays with agent indefinitely
+            lead['status'] = 'appointment_set'
+            lead['protected'] = True
+            return True, "Lead protected - appointment set"
+            
+        elif disposition.lower() == 'not_interested':
+            # Immediately recycle to hopper
+            lead['assigned_user_id'] = None
+            lead['status'] = 'recycled'
+            lead['assigned_at'] = None
+            lead['recycled_at'] = current_time
+            lead['times_recycled'] = lead.get('times_recycled', 0) + 1
+            return True, "Lead recycled - not interested"
+            
+        elif disposition.lower() == 'sale_made':
+            # Close as won
+            lead['status'] = 'closed_won'
+            lead['closed_at'] = current_time
+            return True, "Lead closed as sale"
+            
+        else:
+            # Update status but keep with agent
+            lead['status'] = disposition
+            return True, f"Lead status updated to {disposition}"
+
+# Global hopper system instance
+hopper_system = LeadHopperSystem()
 
 # Production leads database - 22 high-quality medical practice leads
 LEADS = [
@@ -724,6 +888,8 @@ def assign_leads_to_new_agent(agent_id, count=20):
 
 def lambda_handler(event, context):
     """AWS Lambda handler for VantagePoint CRM with DynamoDB user persistence"""
+    
+    # Global declarations at top of function
     global NEXT_LEAD_ID, LEADS
     
     try:
@@ -781,14 +947,24 @@ def lambda_handler(event, context):
         if method == 'OPTIONS':
             return create_response(200, {'message': 'CORS preflight successful'})
         
-        # Health check
+        # Health check with hopper stats
         if path == '/health':
+            # Get hopper statistics
+            hopper_leads = hopper_system.get_hopper_leads(LEADS)
+            assigned_leads = [l for l in LEADS if l.get('assigned_user_id') and l.get('status') not in ['recycled', 'closed_won', 'closed_lost']]
+            
             return create_response(200, {
                 'status': 'healthy',
-                'service': 'VantagePoint CRM API',
+                'service': 'VantagePoint CRM API with Lead Hopper System',
                 'leads_count': len(LEADS),
                 'users_count': len(get_all_users()),  # ✅ FIXED: DynamoDB count
-                'version': '2.0.0',
+                'hopper_system': {
+                    'available_in_hopper': len(hopper_leads),
+                    'assigned_to_agents': len(assigned_leads),
+                    'recycling_active': True,
+                    'max_per_agent': hopper_system.max_leads_per_agent
+                },
+                'version': '3.0.0',  # Updated for hopper system
                 'user_storage': 'DynamoDB',  # ✅ NEW: Shows persistent storage
                 'timestamp': datetime.utcnow().isoformat()
             })
@@ -881,8 +1057,9 @@ def lambda_handler(event, context):
             
             # Create new user - FIXED: DynamoDB storage
             password_hash = hashlib.sha256(password.encode()).hexdigest()
+            new_user_id = get_next_user_id()
             new_user = {
-                "id": get_next_user_id(),
+                "id": new_user_id,
                 "username": username,
                 "password_hash": password_hash,
                 "role": role,
@@ -897,14 +1074,16 @@ def lambda_handler(event, context):
             if not create_user_in_db(username, new_user):
                 return create_response(500, {"detail": "Failed to create user in database"})
             
-            # If new user is an agent, assign 20 leads
+            # 🔄 HOPPER SYSTEM: Auto-assign 20 leads to new agents
             assigned_count = 0
+            hopper_message = ""
             if role == 'agent':
-                assigned_count = assign_leads_to_new_agent(new_user["id"], 20)
-                print(f"✅ Assigned {assigned_count} leads to new agent {username}")
+                assigned_count, message = hopper_system.assign_leads_to_agent(new_user_id, LEADS, 20)
+                hopper_message = f" | {message}"
+                print(f"🔄 Hopper: {message}")
             
             return create_response(201, {
-                "message": "User created successfully",
+                "message": f"User created successfully{hopper_message}",
                 "user": {
                     "id": new_user["id"],
                     "username": new_user["username"],
@@ -912,7 +1091,11 @@ def lambda_handler(event, context):
                     "email": new_user["email"],
                     "full_name": new_user["full_name"]
                 },
-                "leads_assigned": assigned_count,
+                "hopper_system": {
+                    "leads_assigned": assigned_count,
+                    "auto_assignment": role == 'agent',
+                    "message": message if role == 'agent' else None
+                },
                 "storage": "DynamoDB"  # ✅ NEW: Confirms persistent storage
             })
         
@@ -982,12 +1165,189 @@ def lambda_handler(event, context):
                 "storage": "DynamoDB"
             })
         
-        # Leads endpoint - GET all leads
+        # Leads endpoint - GET all leads (WITH ROLE-BASED FILTERING)
         if path == '/api/v1/leads' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Authentication required"})
+            
+            # Filter leads based on user role
+            filtered_leads = []
+            
+            if current_user['role'] == 'agent':
+                # Agents only see their assigned leads
+                filtered_leads = [lead for lead in LEADS if lead.get('assigned_user_id') == current_user['id']]
+            elif current_user['role'] == 'manager':
+                # Managers see leads assigned to their agents
+                managed_agent_ids = [u['id'] for u in get_all_users() if u.get('manager_id') == current_user['id']]
+                managed_agent_ids.append(current_user['id'])  # Include manager's own leads
+                filtered_leads = [lead for lead in LEADS if lead.get('assigned_user_id') in managed_agent_ids]
+            elif current_user['role'] == 'admin':
+                # Admins see all leads
+                filtered_leads = LEADS
+            else:
+                filtered_leads = []
+            
             return create_response(200, {
-                "leads": LEADS,
-                "total_leads": len(LEADS),
-                "message": "Leads retrieved successfully"
+                "leads": filtered_leads,
+                "total_leads": len(filtered_leads),
+                "user_role": current_user['role'],
+                "user_id": current_user['id'],
+                "message": f"Retrieved {len(filtered_leads)} leads for {current_user['role']}: {current_user['username']}"
+            })
+        
+        # Search leads endpoint (WITH ROLE-BASED FILTERING)
+        if path == '/api/v1/leads/search' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            # Get search query parameter
+            query_params = event.get('queryStringParameters') or {}
+            search_query = query_params.get('q', '').lower().strip()
+            
+            if not search_query:
+                return create_response(400, {"detail": "Search query 'q' parameter is required"})
+            
+            # Get all leads that user can access (role-based)
+            user_role = current_user['role']
+            user_id = current_user['id']
+            
+            if user_role == 'admin':
+                accessible_leads = LEADS
+            elif user_role == 'manager':
+                managed_agent_ids = [u['id'] for u in get_all_users() if u.get('manager_id') == user_id]
+                managed_agent_ids.append(user_id)  # Include manager's own leads
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') in managed_agent_ids]
+            else:  # agent
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') == user_id]
+            
+            # Search within accessible leads
+            search_results = []
+            for lead in accessible_leads:
+                # Search in multiple fields
+                searchable_text = f"{lead.get('practice_name', '')} {lead.get('owner_name', '')} {lead.get('specialty', '')} {lead.get('city', '')} {lead.get('state', '')} {lead.get('status', '')} {lead.get('priority', '')}".lower()
+                
+                if search_query in searchable_text:
+                    search_results.append(lead)
+            
+            return create_response(200, {
+                "leads": search_results,
+                "total": len(search_results),
+                "query": search_query,
+                "searched_in": len(accessible_leads),
+                "user_role": user_role,
+                "user_id": user_id
+            })
+        
+        # 🔄 HOPPER SYSTEM ENDPOINTS
+        
+        # Lead disposition endpoint
+        if path.startswith('/api/v1/leads/') and path.endswith('/disposition') and method == 'PUT':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Authentication required"})
+            
+            # Extract lead ID from path
+            lead_id_str = path.split('/')[-2]
+            try:
+                lead_id = int(lead_id_str)
+            except ValueError:
+                return create_response(400, {"detail": "Invalid lead ID"})
+            
+            disposition = body_data.get('disposition', '').lower()
+            if not disposition:
+                return create_response(400, {"detail": "Disposition is required"})
+            
+            # Handle the disposition
+            success, message = hopper_system.handle_lead_disposition(
+                lead_id, disposition, current_user['id'], LEADS
+            )
+            
+            if success:
+                # Auto-replenish agent if they disposed a lead
+                if disposition in ['not_interested', 'sale_made']:
+                    replenish_count, replenish_msg = hopper_system.assign_leads_to_agent(
+                        current_user['id'], LEADS, 20
+                    )
+                    if replenish_count > 0:
+                        message += f" | Auto-replenished: {replenish_count} new leads assigned"
+                
+                return create_response(200, {
+                    "success": True,
+                    "message": message,
+                    "disposition": disposition,
+                    "lead_id": lead_id
+                })
+            else:
+                return create_response(400, {
+                    "success": False,
+                    "message": message
+                })
+        
+        # Hopper statistics endpoint
+        if path == '/api/v1/hopper/stats' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Authentication required"})
+            
+            # Get hopper statistics
+            hopper_leads = hopper_system.get_hopper_leads(LEADS)
+            
+            # Count leads by status
+            assigned_leads = [l for l in LEADS if l.get('assigned_user_id') and l.get('status') not in ['recycled', 'closed_won', 'closed_lost']]
+            protected_leads = [l for l in LEADS if l.get('status') == 'appointment_set']
+            closed_leads = [l for l in LEADS if l.get('status') in ['closed_won', 'closed_lost']]
+            
+            stats = {
+                'total_leads': len(LEADS),
+                'hopper_available': len(hopper_leads),
+                'assigned_active': len(assigned_leads),
+                'protected_appointments': len(protected_leads),
+                'closed_deals': len(closed_leads),
+                'high_priority_available': len([l for l in hopper_leads if l.get('priority') == 'high']),
+                'average_score_in_hopper': round(sum(l.get('score', 0) for l in hopper_leads) / len(hopper_leads), 1) if hopper_leads else 0,
+                'recycling_active': True,
+                'max_leads_per_agent': hopper_system.max_leads_per_agent,
+                'recycling_hours': hopper_system.recycling_hours
+            }
+            
+            return create_response(200, {
+                "hopper_stats": stats,
+                "message": "Hopper statistics retrieved successfully"
+            })
+        
+        # Manual recycling endpoint (admin only)
+        if path == '/api/v1/hopper/recycle' and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Authentication required"})
+            
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Admin access required"})
+            
+            # Run manual recycling
+            recycled_count = 0
+            current_time = datetime.utcnow().isoformat() + 'Z'
+            
+            for lead in LEADS:
+                if hopper_system._is_lead_recyclable(lead) and lead.get('assigned_user_id'):
+                    # Recycle the lead
+                    lead['assigned_user_id'] = None
+                    lead['status'] = 'recycled'
+                    lead['assigned_at'] = None
+                    lead['recycled_at'] = current_time
+                    lead['times_recycled'] = lead.get('times_recycled', 0) + 1
+                    recycled_count += 1
+            
+            return create_response(200, {
+                "recycled_count": recycled_count,
+                "message": f"Manually recycled {recycled_count} expired leads to hopper"
             })
         
         # Leads endpoint - POST create new lead
@@ -1012,8 +1372,7 @@ def lambda_handler(event, context):
             except:
                 return create_response(400, {"detail": "Invalid JSON data"})
             
-            # Generate new lead ID
-            global NEXT_LEAD_ID
+            # Generate new lead ID - FIXED: Global declaration at top
             new_lead_id = NEXT_LEAD_ID
             NEXT_LEAD_ID += 1
             
@@ -1098,7 +1457,6 @@ def lambda_handler(event, context):
                 return create_response(400, {"detail": "No leads data provided"})
             
             # Process leads in batch
-            global NEXT_LEAD_ID
             created_leads = []
             failed_leads = []
             
@@ -1154,27 +1512,134 @@ def lambda_handler(event, context):
                 "failed_leads": failed_leads[:5]  # Show first 5 failures for debugging
             })
         
-        # Summary endpoint - Dashboard statistics
+        # Update individual lead endpoint - PUT /api/v1/leads/{id}
+        if path.startswith('/api/v1/leads/') and method == 'PUT':
+            # Extract lead ID from path
+            path_parts = path.split('/')
+            if len(path_parts) >= 4:
+                try:
+                    lead_id = int(path_parts[3])
+                except ValueError:
+                    return create_response(400, {"detail": "Invalid lead ID"})
+            else:
+                return create_response(400, {"detail": "Lead ID required"})
+            
+            # Extract user from token for permissions
+            auth_header = headers.get("authorization", headers.get("Authorization", ""))
+            if not auth_header.startswith("Bearer "):
+                return create_response(401, {"detail": "Authentication required"})
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_jwt_token(token)
+            if not payload:
+                return create_response(401, {"detail": "Invalid token"})
+            
+            current_user = get_user(payload.get("username"))
+            if not current_user:
+                return create_response(401, {"detail": "User not found"})
+            
+            # Parse request data
+            try:
+                update_data = json.loads(event.get('body', '{}'))
+            except:
+                return create_response(400, {"detail": "Invalid JSON data"})
+            
+            # Find the lead to update
+            lead_to_update = None
+            for lead in LEADS:
+                if lead['id'] == lead_id:
+                    lead_to_update = lead
+                    break
+            
+            if not lead_to_update:
+                return create_response(404, {"detail": "Lead not found"})
+            
+            # Check permissions (agents can only update their own leads, managers their team's, admins all)
+            if current_user['role'] == 'agent' and lead_to_update.get('assigned_user_id') != current_user['id']:
+                return create_response(403, {"detail": "You can only update your own leads"})
+            elif current_user['role'] == 'manager':
+                # Managers can update their own leads and their agents' leads
+                team_user_ids = [current_user['id']]
+                team_agents = [u for u in get_all_users() if u.get('manager_id') == current_user['id']]
+                team_user_ids.extend([agent['id'] for agent in team_agents])
+                
+                if lead_to_update.get('assigned_user_id') not in team_user_ids:
+                    return create_response(403, {"detail": "You can only update your team's leads"})
+            # Admins can update any lead (no additional check needed)
+            
+            # Update allowed fields
+            updatable_fields = ['practice_name', 'owner_name', 'practice_phone', 'email', 'address', 'city', 'state', 'zip_code', 'specialty', 'status', 'assigned_user_id', 'docs_sent', 'ptan', 'ein_tin', 'npi']
+            
+            for field, value in update_data.items():
+                if field in updatable_fields:
+                    lead_to_update[field] = value
+            
+            # Update timestamp
+            lead_to_update['updated_at'] = datetime.utcnow().isoformat() + "Z"
+            
+            print(f"✅ Lead updated: ID {lead_id} - {lead_to_update.get('practice_name', 'Unknown')} by {current_user['username']}")
+            
+            return create_response(200, {
+                "lead": lead_to_update,
+                "message": "Lead updated successfully"
+            })
+        
+        # Summary endpoint - Role-based Dashboard statistics
         if path == '/api/v1/summary' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Authentication required"})
+            
+            # Get role-based leads (same filtering as /api/v1/leads)
+            user_role = current_user['role']
+            user_id = current_user['id']
+            
+            if user_role == 'agent':
+                # Agents only see their assigned leads
+                relevant_leads = [lead for lead in LEADS if lead.get('assigned_user_id') == user_id]
+            elif user_role == 'manager':
+                # Managers see leads assigned to their agents
+                managed_agent_ids = [u['id'] for u in get_all_users() if u.get('manager_id') == user_id]
+                managed_agent_ids.append(user_id)  # Include manager's own leads
+                relevant_leads = [lead for lead in LEADS if lead.get('assigned_user_id') in managed_agent_ids]
+            elif user_role == 'admin':
+                # Admins see all leads
+                relevant_leads = LEADS
+            else:
+                relevant_leads = []
+            
+            # Calculate stats from role-filtered leads
             status_counts = {}
             priority_counts = {}
             
-            for lead in LEADS:
+            for lead in relevant_leads:
                 status = lead.get("status", "unknown")
                 priority = lead.get("priority", "unknown")
                 
                 status_counts[status] = status_counts.get(status, 0) + 1
                 priority_counts[priority] = priority_counts.get(priority, 0) + 1
             
+            # Calculate additional metrics
+            active_leads = len([l for l in relevant_leads if l.get('status') not in ['closed_won', 'closed_lost']])
+            closed_deals = status_counts.get("closed_won", 0)
+            conversion_rate = round((closed_deals / len(relevant_leads) * 100) if relevant_leads else 0, 1)
+            
             return create_response(200, {
-                "total_leads": len(LEADS),
+                "total_leads": len(relevant_leads),
+                "active_leads": active_leads,
+                "practices_signed_up": closed_deals,  # Closed deals for frontend compatibility
+                "conversion_rate": conversion_rate,
                 "status_breakdown": status_counts,
                 "priority_breakdown": priority_counts,
                 "new_leads": status_counts.get("new", 0),
                 "contacted_leads": status_counts.get("contacted", 0),
+                "qualified_leads": status_counts.get("qualified", 0),
                 "high_priority": priority_counts.get("high", 0),
                 "users_count": len(get_all_users()),
-                "message": "Summary statistics retrieved successfully"
+                "user_role": user_role,
+                "user_id": user_id,
+                "message": f"Role-based summary for {user_role}: {current_user['username']}"
             })
         
         # Default response

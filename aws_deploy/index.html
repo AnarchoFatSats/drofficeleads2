@@ -824,10 +824,16 @@
                 const summaryResponseData = await summaryResponse.json();
 
                 // API responses loaded successfully
+                console.log('🔍 Raw leadsData:', leadsData);
+                console.log('🔍 leadsData.leads:', leadsData.leads);
+                console.log('🔍 leadsData.leads length:', leadsData.leads ? leadsData.leads.length : 'undefined');
 
                 // Extract leads array from response
                 allLeads = leadsData.leads || [];
                 summaryData = summaryResponseData;
+
+                console.log('🔍 allLeads after assignment:', allLeads);
+                console.log('🔍 allLeads length:', allLeads.length);
 
                 // Processed leads successfully
 
@@ -851,12 +857,15 @@
 
         function updateDashboardStats() {
             console.log('📊 Updating dashboard stats:', summaryData);
+            console.log('🔍 Summary data structure:', JSON.stringify(summaryData, null, 2));
             
             // Update stats cards based on role and data
             const practicesSignedUp = summaryData.practices_signed_up || 0;
-            const activeLeads = summaryData.active_leads || 0;
+            const activeLeads = summaryData.active_leads || allLeads.length; // Use actual leads count as fallback
             const conversionRate = summaryData.conversion_rate || 0;
-            const totalLeads = summaryData.total_leads || 0;
+            const totalLeads = summaryData.total_leads || allLeads.length; // Use actual leads count as fallback
+            
+            console.log('🔍 Calculated stats:', { practicesSignedUp, activeLeads, conversionRate, totalLeads });
             
             // Update the stats cards
             const elements = {
