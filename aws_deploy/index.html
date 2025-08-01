@@ -908,24 +908,29 @@
             console.log('✅ Dashboard stats updated');
         }
 
-        function renderLeadsTable() {
+        function renderLeadsTable(leadsToRender = null) {
             const tableBody = document.getElementById('leadsTable');
             
-            if (!Array.isArray(allLeads)) {
-                console.error('❌ allLeads is not an array:', typeof allLeads, allLeads);
-                allLeads = [];
+            // Use parameter if provided, otherwise use global allLeads
+            const leads = leadsToRender || allLeads;
+            
+            if (!Array.isArray(leads)) {
+                console.error('❌ leads is not an array:', typeof leads, leads);
+                console.error('❌ allLeads is:', typeof allLeads, allLeads);
+                return;
             }
             
-            console.log('📊 Rendering', allLeads.length, 'leads');
+            console.log('📊 Rendering', leads.length, 'leads');
+            console.log('🔍 First lead:', leads[0]);
             
-            if (allLeads.length === 0) {
+            if (leads.length === 0) {
                 tableBody.innerHTML = `
                     <tr><td colspan="11" class="text-center">No leads available</td></tr>
                 `;
                 return;
             }
 
-            const rows = allLeads.map(lead => {
+            const rows = leads.map(lead => {
                 const statusBadge = `<span class="badge status-${lead.status}">${lead.status.toUpperCase()}</span>`;
                 const priorityBadge = `<span class="badge priority-${lead.priority}">${lead.priority.toUpperCase()}</span>`;
                 
