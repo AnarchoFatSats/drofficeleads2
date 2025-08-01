@@ -10,6 +10,113 @@ import base64
 import hmac
 from datetime import datetime, timedelta
 import random
+import urllib3
+import urllib.parse
+
+# Configuration for external API
+EXTERNAL_API_CONFIG = {
+    "url": "https://nwabj0qrf1.execute-api.us-east-1.amazonaws.com/Prod/createUserExternal",
+    "vendor_token": "Nb9sQCZnrAxAxS4KrysMLzRUQ2HN21hbZmpshgZYb1cT7sEPdJkNEE_MhfB59pDt",  # Real vendor token provided
+    "default_sales_rep": "VantagePoint Sales Team"
+}
+
+def send_docs_to_external_api(lead_data, user_info):
+    """Send lead data to external createUserExternal API"""
+    try:
+        # Map our CRM data to their API format (per specification)
+        payload = {
+            "email": lead_data.get('email', f"{lead_data['practice_name'].lower().replace(' ', '.')}@{lead_data['practice_name'].lower().replace(' ', '')}.com"),
+            "baaSigned": True,  # Assume BAA needs to be signed
+            "paSigned": True,   # Assume PA needs to be signed
+            "facilityName": lead_data['practice_name'],
+            "selectedFacility": "Physician Office (11)",  # Default to physician office per spec
+            "facilityAddress": {
+                "street": lead_data.get('address', ''),
+                "city": lead_data.get('city', ''),
+                "state": lead_data.get('state', ''),
+                "zip": lead_data.get('zip_code', ''),
+                "npi": lead_data.get('npi', ''),  # NPI in address per API bug note
+                "fax": lead_data.get('fax', lead_data.get('practice_phone', ''))
+            },
+            "facilityNPI": lead_data.get('npi', ''),
+            "facilityTIN": lead_data.get('ein_tin', ''),
+            "facilityPTAN": lead_data.get('ptan', ''),
+            "shippingContact": lead_data.get('owner_name', ''),
+            "primaryContactName": lead_data.get('owner_name', ''),
+            "primaryContactEmail": lead_data.get('email', f"{lead_data.get('owner_name', 'contact').lower().replace(' ', '.')}@{lead_data['practice_name'].lower().replace(' ', '')}.com"),
+            "primaryContactPhone": lead_data.get('owner_phone', lead_data.get('practice_phone', '')),
+            "shippingAddresses": [
+                {
+                    "street": lead_data.get('address', ''),
+                    "city": lead_data.get('city', ''),
+                    "state": lead_data.get('state', ''),
+                    "zip": lead_data.get('zip_code', '')
+                }
+            ],
+            "salesRepresentative": user_info.get('full_name', EXTERNAL_API_CONFIG['default_sales_rep']),
+            "physicianInfo": {
+                "physicianFirstName": lead_data.get('owner_name', '').split()[0] if lead_data.get('owner_name') else '',
+                "physicianLastName": ' '.join(lead_data.get('owner_name', '').split()[1:]) if len(lead_data.get('owner_name', '').split()) > 1 else '',
+                "specialty": lead_data.get('specialty', ''),
+                "npi": lead_data.get('npi', ''),
+                "street": lead_data.get('address', ''),
+                "city": lead_data.get('city', ''),
+                "state": lead_data.get('state', ''),
+                "zip": lead_data.get('zip_code', ''),
+                "contactName": lead_data.get('owner_name', ''),
+                "fax": lead_data.get('fax', lead_data.get('practice_phone', '')),
+                "phone": lead_data.get('owner_phone', lead_data.get('practice_phone', ''))
+            },
+            "additionalPhysicians": []  # Empty array per spec
+        }
+        
+        # Create HTTP client
+        http = urllib3.PoolManager()
+        
+        # Prepare headers
+        headers = {
+            "Content-Type": "application/json",
+            "x-vendor-token": EXTERNAL_API_CONFIG['vendor_token']
+        }
+        
+        # Make the API call
+        response = http.request(
+            'POST',
+            EXTERNAL_API_CONFIG['url'],
+            body=json.dumps(payload),
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status == 200:
+            result = json.loads(response.data.decode('utf-8'))
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "user_id": result.get('userId'),
+                    "message": "Documents sent successfully to external company",
+                    "external_response": result
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": result.get('message', 'External API returned error'),
+                    "detail": result.get('detail', ''),
+                    "external_response": result
+                }
+        else:
+            return {
+                "success": False,
+                "message": f"API call failed with status {response.status}",
+                "detail": response.data.decode('utf-8') if response.data else 'No response data'
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to send documents to external company",
+            "detail": str(e)
+        }
 
 def create_jwt_token(username, role):
     """Create a simple JWT token"""
@@ -97,9 +204,11 @@ USERS = {
     }
 }
 
-# Auto-incrementing IDs
+# Auto-incrementing IDs - Initialize based on existing data
 NEXT_USER_ID = 4
-NEXT_LEAD_ID = 21
+# Calculate NEXT_LEAD_ID based on existing leads to avoid conflicts
+existing_lead_ids = [1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19]  # Known IDs from current data
+NEXT_LEAD_ID = max(existing_lead_ids) + 1 if existing_lead_ids else 1
 
 # Production leads database - 20 high-quality leads with all statuses
 LEADS = [
@@ -116,9 +225,9 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 100,
         "priority": "high",
-        "status": "sold",  # Sold deal
+        "status": "new",  # Fresh lead for Day 1
         "assigned_user_id": 3,
-        "docs_sent": True,
+        "docs_sent": False,
         "ptan": "PTAN123456",
         "ein_tin": "EIN123456789",
         "created_at": "2025-01-15T10:00:00Z",
@@ -137,9 +246,9 @@ LEADS = [
         "specialty": "Orthopedic Surgery",
         "score": 95,
         "priority": "high",
-        "status": "disposed", # Disposed deal
+        "status": "new", # Fresh lead for Day 1
         "assigned_user_id": 3,
-        "docs_sent": True,
+        "docs_sent": False,
         "ptan": "PTAN123457",
         "ein_tin": "EIN123456790",
         "created_at": "2025-01-15T10:00:00Z",
@@ -158,9 +267,9 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 98,
         "priority": "high",
-        "status": "qualified",
+        "status": "new",
         "assigned_user_id": 3,
-        "docs_sent": True,
+        "docs_sent": False,
         "ptan": "PTAN123458",
         "ein_tin": "EIN123456791",
         "created_at": "2025-01-15T10:00:00Z",
@@ -179,7 +288,7 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 92,
         "priority": "high",
-        "status": "contacted",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -201,7 +310,7 @@ LEADS = [
         "score": 89,
         "priority": "high",
         "status": "new",
-        "assigned_user_id": None,
+        "assigned_user_id": 3,  # Fixed: Assign to agent1
         "docs_sent": False,
         "ptan": "",
         "ein_tin": "",
@@ -221,9 +330,9 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 94,
         "priority": "high",
-        "status": "sold",  # Another sold deal
+        "status": "new",  # Fresh lead
         "assigned_user_id": 3,
-        "docs_sent": True,
+        "docs_sent": False,
         "ptan": "PTAN123459",
         "ein_tin": "EIN123456792",
         "created_at": "2025-01-15T10:00:00Z",
@@ -263,7 +372,7 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 87,
         "priority": "medium",
-        "status": "contacted",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -284,7 +393,7 @@ LEADS = [
         "specialty": "Wound Care",
         "score": 83,
         "priority": "medium",
-        "status": "qualified",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -347,7 +456,7 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 85,
         "priority": "medium",
-        "status": "qualified",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -368,7 +477,7 @@ LEADS = [
         "specialty": "Wound Care",
         "score": 90,
         "priority": "high",
-        "status": "contacted",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -389,7 +498,7 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 82,
         "priority": "medium",
-        "status": "contacted",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -452,7 +561,7 @@ LEADS = [
         "specialty": "Wound Care",
         "score": 87,
         "priority": "medium",
-        "status": "qualified",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -473,7 +582,7 @@ LEADS = [
         "specialty": "Podiatrist",
         "score": 81,
         "priority": "medium",
-        "status": "contacted",
+        "status": "new",
         "assigned_user_id": 3,
         "docs_sent": False,
         "ptan": "",
@@ -516,7 +625,7 @@ LEADS = [
         "score": 83,
         "priority": "medium",
         "status": "new",
-        "assigned_user_id": None,
+        "assigned_user_id": 3,  # Fixed: Assign to agent1
         "docs_sent": False,
         "ptan": "",
         "ein_tin": "",
@@ -544,18 +653,19 @@ def assign_leads_to_new_agent(agent_id, count=20):
     return assigned_count
 
 def get_role_based_stats(user_role, user_id):
-    """Get statistics based on user role"""
+    """Get statistics based on user role with proper hierarchy tracking"""
     if user_role == "admin":
         # Admin sees all leads
         relevant_leads = LEADS
     elif user_role == "manager":
-        # Manager sees leads of their agents
+        # Manager sees leads of their agents only
         manager_agents = [user for user in USERS.values() if user.get("manager_id") == user_id]
         agent_ids = [agent["id"] for agent in manager_agents]
         relevant_leads = [lead for lead in LEADS if lead["assigned_user_id"] in agent_ids]
+        
+        print(f"📊 Manager {user_id} has {len(manager_agents)} agents with {len(relevant_leads)} total leads")
     else:  # agent
         # Agent sees their own leads + team comparison data
-        # For competitive view, agents can see team performance but not individual leads
         relevant_leads = [lead for lead in LEADS if lead["assigned_user_id"] == user_id]
     
     # Calculate stats
@@ -726,8 +836,20 @@ def lambda_handler(event, context):
                 "total": len(visible_leads)
             })
         
+        # Helper function to get user by ID
+        def get_user_by_id(user_id):
+            for user_data in USERS.values():
+                if user_data['id'] == user_id:
+                    return user_data
+            return None
+
         # Create new lead
         if path == '/api/v1/leads' and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_data = body_data
             
             # Validate required fields
@@ -735,6 +857,25 @@ def lambda_handler(event, context):
             for field in required_fields:
                 if not lead_data.get(field):
                     return create_response(400, {"detail": f"{field} is required"})
+            
+            # Auto-assign to current user if no assignment specified
+            assigned_user_id = lead_data.get('assigned_user_id')
+            if not assigned_user_id:
+                # Auto-assign based on role
+                if current_user['role'] == 'agent':
+                    assigned_user_id = current_user['id']
+                elif current_user['role'] == 'manager':
+                    # Managers can assign to themselves or their agents
+                    managed_agent_ids = [u['id'] for u in USERS.values() if u.get('manager_id') == current_user['id']]
+                    if managed_agent_ids:
+                        # Assign to first available agent (can be enhanced with round-robin)
+                        assigned_user_id = managed_agent_ids[0]
+                    else:
+                        assigned_user_id = current_user['id']  # Assign to self if no agents
+                else:  # admin
+                    # Assign to first available agent or self
+                    agent_users = [u['id'] for u in USERS.values() if u['role'] == 'agent']
+                    assigned_user_id = agent_users[0] if agent_users else current_user['id']
             
             # Create new lead
             new_lead = {
@@ -751,29 +892,87 @@ def lambda_handler(event, context):
                 "score": int(lead_data.get('score', 75)),
                 "priority": lead_data.get('priority', 'medium'),
                 "status": lead_data.get('status', 'new'),
-                "assigned_user_id": lead_data.get('assigned_user_id'),
+                "assigned_user_id": assigned_user_id,  # ✅ Fixed: Always has a valid assignment
                 "docs_sent": False,
                 "ptan": lead_data.get('ptan', ''),
                 "ein_tin": lead_data.get('ein_tin', ''),
                 "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat(),
+                "created_by": current_user['username']
             }
             
             LEADS.append(new_lead)
+            old_next_id = NEXT_LEAD_ID
             NEXT_LEAD_ID += 1
+            
+            print(f"✅ Lead created and assigned to user {assigned_user_id} ({get_user_by_id(assigned_user_id)['username']})")
+            print(f"📊 Lead ID: {new_lead['id']}, Previous NEXT_LEAD_ID: {old_next_id}, New NEXT_LEAD_ID: {NEXT_LEAD_ID}")
+            print(f"📋 Total leads in memory: {len(LEADS)}")
             
             return create_response(201, {
                 "message": "Lead created successfully",
-                "lead": new_lead
+                "lead": new_lead,
+                "assigned_to": get_user_by_id(assigned_user_id)['username'],
+                "debug_info": {
+                    "total_leads": len(LEADS),
+                    "next_lead_id": NEXT_LEAD_ID
+                }
+            })
+
+        # Search leads
+        if path == '/api/v1/leads/search' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            # Get search query parameter
+            query_params = event.get('queryStringParameters') or {}
+            search_query = query_params.get('q', '').lower().strip()
+            
+            if not search_query:
+                return create_response(400, {"detail": "Search query 'q' parameter is required"})
+            
+            # Get all leads that user can access (role-based)
+            user_role = current_user['role']
+            user_id = current_user['id']
+            
+            if user_role == 'admin':
+                accessible_leads = LEADS
+            elif user_role == 'manager':
+                managed_agent_ids = [u['id'] for u in USERS.values() if u.get('manager_id') == user_id]
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') in managed_agent_ids]
+            else:  # agent
+                accessible_leads = [l for l in LEADS if l.get('assigned_user_id') == user_id]
+            
+            # Search within accessible leads
+            search_results = []
+            for lead in accessible_leads:
+                # Search in multiple fields
+                searchable_text = f"{lead.get('practice_name', '')} {lead.get('owner_name', '')} {lead.get('specialty', '')} {lead.get('city', '')} {lead.get('state', '')} {lead.get('status', '')} {lead.get('priority', '')}".lower()
+                
+                if search_query in searchable_text:
+                    search_results.append(lead)
+            
+            return create_response(200, {
+                "leads": search_results,
+                "total": len(search_results),
+                "query": search_query,
+                "searched_in": len(accessible_leads)
             })
         
         # Update lead
         if path.startswith('/api/v1/leads/') and method == 'PUT':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_id = int(path.split('/')[-1])
             lead = next((l for l in LEADS if l["id"] == lead_id), None)
             
             if not lead:
-                return create_response(404, {"detail": "Lead not found"})
+                return create_response(404, {"detail": f"Lead not found (ID: {lead_id}). Available IDs: {[l['id'] for l in LEADS][:10]}..."})
             
             # Check permissions - agents can only edit their own leads
             if current_user['role'] == 'agent' and lead["assigned_user_id"] != current_user['id']:
@@ -799,6 +998,11 @@ def lambda_handler(event, context):
         
         # Send docs endpoint
         if path.startswith('/api/v1/leads/') and path.endswith('/send-docs') and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             lead_id = int(path.split('/')[-2])
             lead = next((l for l in LEADS if l["id"] == lead_id), None)
             
@@ -817,20 +1021,37 @@ def lambda_handler(event, context):
             if current_user['role'] == 'agent' and lead["assigned_user_id"] != current_user['id']:
                 return create_response(403, {"detail": "You can only send docs for your own leads"})
             
-            # Mark docs as sent
-            lead['docs_sent'] = True
-            lead['updated_at'] = datetime.utcnow().isoformat()
+            # Send to external API
+            external_result = send_docs_to_external_api(lead, current_user)
             
-            # In a real system, this would trigger actual document sending
-            return create_response(200, {
-                "message": "Documents sent successfully",
-                "email_used": lead['email'],
-                "external_user_id": f"EXT_{lead['id']}_{int(datetime.now().timestamp())}",
-                "sent_at": datetime.utcnow().isoformat()
-            })
+            if external_result['success']:
+                # Mark docs as sent only if external API succeeded
+                lead['docs_sent'] = True
+                lead['updated_at'] = datetime.utcnow().isoformat()
+                
+                return create_response(200, {
+                    "message": "Documents sent successfully to external company",
+                    "email_used": lead['email'],
+                    "external_user_id": external_result.get('user_id', f"EXT_{lead['id']}_{int(datetime.utcnow().timestamp())}"),
+                    "sent_at": datetime.utcnow().isoformat(),
+                    "external_response": external_result.get('external_response', {})
+                })
+            else:
+                # Don't mark as sent if external API failed
+                return create_response(500, {
+                    "message": "Failed to send documents to external company",
+                    "error": external_result['message'],
+                    "detail": external_result.get('detail', ''),
+                    "external_response": external_result.get('external_response', {})
+                })
         
         # Create new user (admin/manager only)
         if path == '/api/v1/users' and method == 'POST':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             # Check permissions
             if current_user['role'] not in ['admin', 'manager']:
                 return create_response(403, {"detail": "Only admins and managers can create users"})
@@ -846,9 +1067,27 @@ def lambda_handler(event, context):
             if username in USERS:
                 return create_response(400, {"detail": "Username already exists"})
             
-            # Managers can only create agents
-            if current_user['role'] == 'manager' and role != 'agent':
-                return create_response(403, {"detail": "Managers can only create agent accounts"})
+            # Managers can only create agents and only for their own team
+            if current_user['role'] == 'manager':
+                if role != 'agent':
+                    return create_response(403, {"detail": "Managers can only create agent accounts"})
+                # Managers can only add agents to their own team
+                manager_id = current_user['id']
+            else:  # admin
+                # Admin can create managers or agents
+                if role == 'agent':
+                    manager_id = new_user_data.get('manager_id')
+                    if manager_id:
+                        # Validate manager exists and is actually a manager
+                        manager_user = None
+                        for user_data in USERS.values():
+                            if user_data['id'] == manager_id and user_data['role'] == 'manager':
+                                manager_user = user_data
+                                break
+                        if not manager_user:
+                            return create_response(400, {"detail": "Invalid manager_id: Manager not found"})
+                else:  # creating manager
+                    manager_id = None
             
             # Create new user
             password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -861,7 +1100,7 @@ def lambda_handler(event, context):
                 "full_name": new_user_data.get('full_name', username.title()),
                 "is_active": True,
                 "created_at": datetime.utcnow().isoformat(),
-                "manager_id": current_user['id'] if current_user['role'] == 'manager' else new_user_data.get('manager_id')
+                "manager_id": manager_id
             }
             
             USERS[username] = new_user
@@ -879,8 +1118,107 @@ def lambda_handler(event, context):
                 "leads_assigned": assigned_count
             })
         
+        # Get available managers (for admin user creation)
+        if path == '/api/v1/managers' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Only admins can view managers list"})
+            
+            managers = [
+                {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "full_name": user["full_name"],
+                    "agent_count": len([u for u in USERS.values() if u.get("manager_id") == user["id"]])
+                }
+                for user in USERS.values() 
+                if user["role"] == "manager"
+            ]
+            
+            return create_response(200, {"managers": managers})
+        
+        # Get organizational structure (admin only)
+        if path == '/api/v1/organization' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
+            if current_user['role'] != 'admin':
+                return create_response(403, {"detail": "Only admins can view organizational structure"})
+            
+            # Build organizational tree
+            managers = []
+            unassigned_agents = []
+            
+            for user in USERS.values():
+                if user["role"] == "manager":
+                    # Get agents under this manager
+                    agents = [
+                        {
+                            "id": agent["id"],
+                            "username": agent["username"],
+                            "full_name": agent["full_name"],
+                            "email": agent["email"],
+                            "is_active": agent["is_active"],
+                            "created_at": agent["created_at"],
+                            "lead_count": len([l for l in LEADS if l["assigned_user_id"] == agent["id"]]),
+                            "sales_count": len([l for l in LEADS if l["assigned_user_id"] == agent["id"] and l["status"] in ["sold", "disposed"]])
+                        }
+                        for agent in USERS.values() 
+                        if agent["role"] == "agent" and agent.get("manager_id") == user["id"]
+                    ]
+                    
+                    # Calculate manager team stats
+                    team_leads = sum(agent["lead_count"] for agent in agents)
+                    team_sales = sum(agent["sales_count"] for agent in agents)
+                    team_conversion = round((team_sales / team_leads * 100) if team_leads > 0 else 0, 1)
+                    
+                    managers.append({
+                        "id": user["id"],
+                        "username": user["username"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "is_active": user["is_active"],
+                        "created_at": user["created_at"],
+                        "agent_count": len(agents),
+                        "team_leads": team_leads,
+                        "team_sales": team_sales,
+                        "team_conversion_rate": team_conversion,
+                        "agents": agents
+                    })
+                elif user["role"] == "agent" and not user.get("manager_id"):
+                    # Unassigned agents
+                    unassigned_agents.append({
+                        "id": user["id"],
+                        "username": user["username"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "is_active": user["is_active"],
+                        "created_at": user["created_at"],
+                        "lead_count": len([l for l in LEADS if l["assigned_user_id"] == user["id"]]),
+                        "sales_count": len([l for l in LEADS if l["assigned_user_id"] == user["id"] and l["status"] in ["sold", "disposed"]])
+                    })
+            
+            return create_response(200, {
+                "managers": managers,
+                "unassigned_agents": unassigned_agents,
+                "total_managers": len(managers),
+                "total_agents": len([u for u in USERS.values() if u["role"] == "agent"]),
+                "total_admins": len([u for u in USERS.values() if u["role"] == "admin"])
+            })
+        
         # Get role-based dashboard stats
         if path == '/api/v1/summary' and method == 'GET':
+            current_user = get_current_user_from_token(headers)
+            
+            if not current_user:
+                return create_response(401, {"detail": "Not authenticated"})
+            
             stats = get_role_based_stats(current_user['role'], current_user['id'])
             return create_response(200, stats)
         

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VantagePoint CRM - Auth Debug</title>
+</head>
+<body>
+    <h1>🔐 Authentication Debug Test</h1>
+    <div id="debug-output"></div>
+    
+    <script>
+        const CONFIG = {
+            API_BASE_URL: 'https://api.vantagepointcrm.com',
+            ENDPOINTS: {
+                LOGIN: '/api/v1/auth/login',
+                ME: '/api/v1/auth/me'
+            }
+        };
+        
+        function log(message) {
+            const output = document.getElementById('debug-output');
+            output.innerHTML += `<div>${new Date().toISOString()}: ${message}</div>`;
+            console.log(message);
+        }
+        
+        async function testAuthFlow() {
+            log('🚀 Starting authentication debug test...');
+            
+            try {
+                // Step 1: Login
+                log('1️⃣ Testing login...');
+                const loginResponse = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LOGIN}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                log(`Login response status: ${loginResponse.status}`);
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                log(`✅ Login successful, token: ${token.substring(0, 20)}...`);
+                
+                // Store token
+                localStorage.setItem('token', token);
+                log('✅ Token stored in localStorage');
+                
+                // Step 2: Test auth/me endpoint
+                log('2️⃣ Testing /auth/me endpoint...');
+                log(`Calling: ${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`);
+                
+                const meResponse = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log(`Auth/me response status: ${meResponse.status}`);
+                log(`Auth/me response headers: ${JSON.stringify([...meResponse.headers.entries()])}`);
+                
+                if (!meResponse.ok) {
+                    const errorText = await meResponse.text();
+                    log(`❌ Auth/me failed: ${meResponse.status} - ${errorText}`);
+                    throw new Error(`Auth/me failed: ${meResponse.status}`);
+                }
+                
+                const userData = await meResponse.json();
+                log(`✅ Auth/me successful: ${JSON.stringify(userData)}`);
+                
+                // Step 3: Test the exact frontend checkAuthentication logic
+                log('3️⃣ Testing frontend checkAuthentication logic...');
+                
+                const storedToken = localStorage.getItem('token');
+                if (!storedToken) {
+                    log('❌ No token in localStorage - would redirect to login');
+                    return;
+                }
+                log(`✅ Token found in localStorage: ${storedToken.substring(0, 20)}...`);
+                
+                // Exact frontend call
+                fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                    headers: {
+                        'Authorization': `Bearer ${storedToken}`
+                    }
+                })
+                .then(response => {
+                    log(`Frontend test response status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error('Token invalid');
+                    }
+                    return response.json();
+                })
+                .then(user => {
+                    log(`✅ Frontend test successful: ${JSON.stringify(user)}`);
+                    log('🎉 AUTHENTICATION FLOW WORKING!');
+                })
+                .catch(error => {
+                    log(`❌ Frontend test failed: ${error.message}`);
+                    log('🚨 This would cause redirect to login page!');
+                });
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`);
+            }
+        }
+        
+        // Run test on page load
+        testAuthFlow();
+    </script>
+</body>
+</html> 
