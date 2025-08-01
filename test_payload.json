@@ -1,1 +1,7 @@
-{"httpMethod": "GET", "path": "/health"}
+{
+    "httpMethod": "GET",
+    "path": "/health",
+    "headers": {},
+    "queryStringParameters": null,
+    "body": null
+}
