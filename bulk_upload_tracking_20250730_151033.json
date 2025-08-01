@@ -1,0 +1,8 @@
+{
+  "upload_timestamp": "20250730_151033",
+  "uploaded_count": 370,
+  "total_processed": 370,
+  "success_rate": "100.0%",
+  "upload_method": "bulk_endpoint",
+  "notes": "Bulk upload of 370 leads from local database using /api/v1/leads/bulk endpoint"
+}

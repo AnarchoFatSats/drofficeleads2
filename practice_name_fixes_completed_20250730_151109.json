@@ -1,0 +1,130 @@
+{
+  "fix_timestamp": "20250730_151109",
+  "total_identified": 102,
+  "successfully_updated": 0,
+  "failed_updates": 102,
+  "success_rate": "0.0%",
+  "description": "Fixed generic 'Medical Practice X' names using real owner information",
+  "examples": [
+    {
+      "id": 20,
+      "before": "Medical Practice 1",
+      "after": "Diltz Medical Practice",
+      "owner": "Dr. MATTHEW V DILTZ"
+    },
+    {
+      "id": 28,
+      "before": "Medical Practice 9",
+      "after": "Elmer Medical Practice",
+      "owner": "Dr. MRS. LESLIE A ELMER"
+    },
+    {
+      "id": 29,
+      "before": "Medical Practice 10",
+      "after": "Williams Medical Practice",
+      "owner": "Dr. JOHN M WILLIAMS"
+    },
+    {
+      "id": 35,
+      "before": "Medical Practice 16",
+      "after": "Plettner Medical Practice",
+      "owner": "Dr. DR. JAMES P PLETTNER"
+    },
+    {
+      "id": 39,
+      "before": "Medical Practice 20",
+      "after": "Bowen Medical Practice",
+      "owner": "Dr. DR. WILLIAM SCOTT BOWEN"
+    },
+    {
+      "id": 41,
+      "before": "Medical Practice 22",
+      "after": "Alexander Medical Practice",
+      "owner": "Dr. ALEXANDER REYZELMAN"
+    },
+    {
+      "id": 42,
+      "before": "Medical Practice 23",
+      "after": "Kristie Medical Practice",
+      "owner": "Dr. KRISTIE WHITLATCH"
+    },
+    {
+      "id": 44,
+      "before": "Medical Practice 25",
+      "after": "Daleina Medical Practice",
+      "owner": "Dr. DALEINA BULGER"
+    },
+    {
+      "id": 45,
+      "before": "Medical Practice 26",
+      "after": "David Medical Practice",
+      "owner": "Dr. DAVID COPE"
+    },
+    {
+      "id": 46,
+      "before": "Medical Practice 27",
+      "after": "Diltz Medical Practice",
+      "owner": "Dr. MATTHEW V DILTZ"
+    },
+    {
+      "id": 54,
+      "before": "Medical Practice 35",
+      "after": "Elmer Medical Practice",
+      "owner": "Dr. MRS. LESLIE A ELMER"
+    },
+    {
+      "id": 55,
+      "before": "Medical Practice 36",
+      "after": "Williams Medical Practice",
+      "owner": "Dr. JOHN M WILLIAMS"
+    },
+    {
+      "id": 61,
+      "before": "Medical Practice 42",
+      "after": "Plettner Medical Practice",
+      "owner": "Dr. DR. JAMES P PLETTNER"
+    },
+    {
+      "id": 65,
+      "before": "Medical Practice 46",
+      "after": "Bowen Medical Practice",
+      "owner": "Dr. DR. WILLIAM SCOTT BOWEN"
+    },
+    {
+      "id": 67,
+      "before": "Medical Practice 48",
+      "after": "Alexander Medical Practice",
+      "owner": "Dr. ALEXANDER REYZELMAN"
+    },
+    {
+      "id": 68,
+      "before": "Medical Practice 49",
+      "after": "Kristie Medical Practice",
+      "owner": "Dr. KRISTIE WHITLATCH"
+    },
+    {
+      "id": 70,
+      "before": "Medical Practice 51",
+      "after": "Daleina Medical Practice",
+      "owner": "Dr. DALEINA BULGER"
+    },
+    {
+      "id": 71,
+      "before": "Medical Practice 52",
+      "after": "David Medical Practice",
+      "owner": "Dr. DAVID COPE"
+    },
+    {
+      "id": 74,
+      "before": "Medical Practice 55",
+      "after": "Williams Medical Practice",
+      "owner": "Dr. JOHN M WILLIAMS"
+    },
+    {
+      "id": 84,
+      "before": "Medical Practice 65",
+      "after": "David Medical Practice",
+      "owner": "Dr. DAVID COPE"
+    }
+  ]
+}

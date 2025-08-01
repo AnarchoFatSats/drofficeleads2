@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VantagePoint - Lead Management</title>
+    
+    <!-- Bootstrap CSS for modal support -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* VantagePoint Professional Sales Platform Design */
+        :root {
+            --vp-primary: #1a365d;          /* Deep navy - authority & trust */
+            --vp-secondary: #2b77e6;        /* Professional blue - reliability */
+            --vp-accent: #f6ad55;           /* Gold accent - premium & success */
+            --vp-success: #38a169;          /* Green - money & growth */
+            --vp-warning: #dd6b20;          /* Orange - urgency */
+            --vp-danger: #e53e3e;           /* Red - alerts */
+            --vp-dark: #1a202c;             /* Charcoal - sophistication */
+            --vp-light: #f7fafc;            /* Clean white */
+            --vp-gray-50: #f9fafb;
+            --vp-gray-100: #f3f4f6;
+            --vp-gray-200: #e5e7eb;
+            --vp-gray-300: #d1d5db;
+            --vp-gray-600: #4b5563;
+            --vp-gray-700: #374151;
+            --vp-gray-800: #1f2937;
+            --vp-gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--vp-gray-800);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        /* Header - Premium Professional Look */
+        .header {
+            background: linear-gradient(135deg, var(--vp-primary) 0%, var(--vp-dark) 100%);
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-bottom: 3px solid var(--vp-accent);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-text h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .header-text h1 i {
+            color: var(--vp-accent);
+            margin-right: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--vp-gray-200);
+            font-size: 1.1rem;
+            margin: 0.5rem 0 0 0;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        .user-info i {
+            color: var(--vp-accent);
+        }
+
+        .logout-btn {
+            background: var(--vp-danger);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #c53030;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+        }
+
+        /* Stats Cards - Money/Power Theme */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            background: var(--vp-gray-50);
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--vp-secondary);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.premium {
+            border-left-color: var(--vp-accent);
+            background: linear-gradient(135deg, #fff 0%, #fefcf7 100%);
+        }
+
+        .stat-card.success {
+            border-left-color: var(--vp-success);
+        }
+
+        .stat-card.growth {
+            border-left-color: var(--vp-warning);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--vp-gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--vp-secondary);
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--vp-dark);
+            line-height: 1;
+            margin: 0.5rem 0;
+        }
+
+        /* Lead Management Section */
+        .section {
+            padding: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--vp-gray-100);
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--vp-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title i {
+            color: var(--vp-secondary);
+        }
+
+        /* Action Buttons - Premium Style */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--vp-secondary) 0%, #1e40af 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(43, 119, 230, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: var(--vp-gray-300);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--vp-success) 0%, #2f855a 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+        }
+
+        .btn-success:disabled {
+            background: var(--vp-gray-300);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496 0%, #0e6b7e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--vp-warning) 0%, #c05621 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(221, 107, 32, 0.3);
+        }
+
+        /* Table - Professional Data Display */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: var(--vp-gray-800);
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem 0.75rem;
+            text-align: left;
+            border: none;
+        }
+
+        .table td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--vp-gray-100);
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background: var(--vp-gray-50);
+        }
+
+        .table tbody tr.selected {
+            background: rgba(43, 119, 230, 0.1);
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge.status-new {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge.status-contacted {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.status-qualified {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.status-sold {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.status-disposed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.priority-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.priority-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.priority-low {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        /* Form Styling */
+        .form-control {
+            border: 2px solid var(--vp-gray-200);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--vp-secondary);
+            box-shadow: 0 0 0 3px rgba(43, 119, 230, 0.1);
+            outline: none;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--vp-gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Modal Enhancements */
+        .modal-header {
+            background: var(--vp-dark);
+            color: white;
+            border-bottom: none;
+        }
+
+        .modal-title {
+            font-weight: 700;
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        /* Loading States */
+        .loading {
+            color: var(--vp-gray-600);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-main {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .stats-row {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .section {
+                padding: 1rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- Create User Modal (Admin) -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create User</h5>
+                    <button type="button" class="btn-close" onclick="closeCreateUserModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select name="role" class="form-control" required>
+                                <option value="agent">Agent</option>
+                                <option value="manager">Manager</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="managerAssignmentDiv">
+                            <label class="form-label">Assign to Manager (for Agents)</label>
+                            <select name="manager_id" class="form-control" id="managerSelect">
+                                <option value="">Select Manager...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                                            <input type="password" name="password" class="form-control" placeholder="Enter password">
+                <small class="text-muted">Create a secure password for the new user</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateUserModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createUser()">Create User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Agent Modal (Manager) -->
+    <div class="modal fade" id="createAgentModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Agent</h5>
+                    <button type="button" class="btn-close" onclick="closeCreateAgentModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createAgentForm">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                                            <input type="password" name="password" class="form-control" placeholder="Enter password">
+                <small class="text-muted">Create a secure password for the new agent</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateAgentModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createAgent()">Create Agent</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration for Lambda API
+        const CONFIG = {
+            API_BASE_URL: 'https://api.vantagepointcrm.com',
+            ENDPOINTS: {
+                LOGIN: '/api/v1/auth/login',
+                ME: '/api/v1/auth/me',
+                LEADS: '/api/v1/leads',
+                USERS: '/api/v1/users',
+                SUMMARY: '/api/v1/summary'
+            }
+        };
+
+        // Global variables
+        let allLeads = [];
+        let filteredLeads = [];
+        let summaryData = {};
+        let selectedLeadId = null;
+        let currentUser = null;
+        let isSearchActive = false;
+        let searchResults = [];
+
+        // Authentication functions
+        function checkAuthentication() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            // Verify token with backend
+            fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Token invalid');
+                }
+                return response.json();
+            })
+            .then(user => {
+                currentUser = user;
+                document.getElementById('username-display').textContent = user.full_name || user.username;
+                showUserManagementButtons(); // Show appropriate buttons based on role
+                loadData();
+            })
+            .catch(error => {
+                console.error('Authentication failed:', error);
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+
+            return true;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        // Data loading functions
+        async function loadData() {
+                            // Loading data...
+            
+            try {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+
+                // Load leads and summary in parallel
+                const [leadsResponse, summaryResponse] = await Promise.all([
+                    fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}`, { headers }),
+                    fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SUMMARY}`, { headers })
+                ]);
+
+                if (!leadsResponse.ok || !summaryResponse.ok) {
+                    throw new Error('Failed to load data');
+                }
+
+                const leadsData = await leadsResponse.json();
+                const summaryResponseData = await summaryResponse.json();
+
+                // API responses loaded successfully
+
+                // Extract leads array from response
+                allLeads = leadsData.leads || [];
+                summaryData = summaryResponseData;
+
+                // Processed leads successfully
+
+                // Update UI
+                updateDashboardStats();
+                renderLeadsTable();
+
+            } catch (error) {
+                console.error('❌ Failed to load data:', error);
+                allLeads = [];
+                summaryData = {};
+                
+                // Show error in UI
+                document.getElementById('leadsTable').innerHTML = `
+                    <tr><td colspan="11" class="text-center text-danger">
+                        Failed to load data: ${error.message}
+                    </td></tr>
+                `;
+            }
+        }
+
+        function updateDashboardStats() {
+            console.log('📊 Updating dashboard stats:', summaryData);
+            
+            // Update stats cards based on role and data
+            const practicesSignedUp = summaryData.practices_signed_up || 0;
+            const activeLeads = summaryData.active_leads || 0;
+            const conversionRate = summaryData.conversion_rate || 0;
+            const totalLeads = summaryData.total_leads || 0;
+            
+            // Update the stats cards
+            const elements = {
+                'practices-signed-up': practicesSignedUp.toString(),
+                'active-leads': activeLeads.toString(),
+                'conversion-rate': conversionRate + '%',
+                'total-leads': totalLeads.toString()
+            };
+
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            });
+
+            // Show team performance for agents
+            if (currentUser && currentUser.role === 'agent' && summaryData.team_performance) {
+                const teamPerf = summaryData.team_performance;
+                const rank = summaryData.your_rank;
+                
+                console.log('🏆 Team Performance:', teamPerf, 'Your Rank:', rank);
+                
+                // Update team rank display
+                const rankElement = document.getElementById('team-rank-display');
+                if (rankElement) {
+                    rankElement.style.display = 'block'; // Ensure it's visible
+                    const rankSpan = document.getElementById('team-rank');
+                    if (rankSpan) {
+                        rankSpan.textContent = `#${rank}`;
+                    }
+                }
+            } else {
+                const rankElement = document.getElementById('team-rank-display');
+                if (rankElement) {
+                    rankElement.style.display = 'none'; // Hide if not an agent or no data
+                }
+            }
+
+            console.log('✅ Dashboard stats updated');
+        }
+
+        function renderLeadsTable() {
+            const tableBody = document.getElementById('leadsTable');
+            
+            if (!Array.isArray(allLeads)) {
+                console.error('❌ allLeads is not an array:', typeof allLeads, allLeads);
+                allLeads = [];
+            }
+            
+            console.log('📊 Rendering', allLeads.length, 'leads');
+            
+            if (allLeads.length === 0) {
+                tableBody.innerHTML = `
+                    <tr><td colspan="11" class="text-center">No leads available</td></tr>
+                `;
+                return;
+            }
+
+            const rows = allLeads.map(lead => {
+                const statusBadge = `<span class="badge status-${lead.status}">${lead.status.toUpperCase()}</span>`;
+                const priorityBadge = `<span class="badge priority-${lead.priority}">${lead.priority.toUpperCase()}</span>`;
+                
+                return `
+                    <tr onclick="selectLead(${lead.id})" style="cursor: pointer;">
+                        <td>
+                            <input type="radio" name="selectedLead" value="${lead.id}" 
+                                   onchange="selectLead(${lead.id})" class="form-check-input">
+                        </td>
+                        <td><strong>${lead.practice_name || 'N/A'}</strong></td>
+                        <td>${lead.owner_name || 'N/A'}</td>
+                        <td>${lead.email || 'N/A'}</td>
+                        <td>${lead.practice_phone || 'N/A'}</td>
+                        <td>${lead.city || 'N/A'}, ${lead.state || 'N/A'}</td>
+                        <td>${priorityBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td>${lead.ptan || 'N/A'}</td>
+                        <td>${lead.ein_tin || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editLead(${lead.id}); event.stopPropagation();">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${canSendDocs(lead) ? `
+                                <button class="btn btn-sm btn-success ms-1" onclick="sendDocs(${lead.id}); event.stopPropagation();">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tableBody.innerHTML = rows;
+        }
+
+        function selectLead(leadId) {
+            selectedLeadId = leadId;
+            
+            // Update radio buttons
+            const radioButtons = document.querySelectorAll('input[name="selectedLead"]');
+            radioButtons.forEach(radio => {
+                radio.checked = radio.value == leadId;
+            });
+            
+            // Update row highlighting
+            const rows = document.querySelectorAll('#leadsTable tr');
+            rows.forEach(row => row.classList.remove('selected'));
+            
+            const selectedRow = document.querySelector(`input[value="${leadId}"]`)?.closest('tr');
+            if (selectedRow) {
+                selectedRow.classList.add('selected');
+            }
+            
+            // Enable action buttons
+            document.getElementById('editLeadBtn').disabled = false;
+            
+            const lead = allLeads.find(l => l.id === leadId);
+            if (lead && canSendDocs(lead)) {
+                document.getElementById('sendDocsBtn').disabled = false;
+            } else {
+                document.getElementById('sendDocsBtn').disabled = true;
+            }
+            
+            console.log('✅ Selected lead:', leadId);
+        }
+
+        function canSendDocs(lead) {
+            return lead.email && 
+                   ['new', 'contacted', 'qualified'].includes(lead.status?.toLowerCase()) &&
+                   !lead.docs_sent;
+        }
+
+        async function editLead(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (!lead) {
+                alert('Lead not found');
+                return;
+            }
+
+            // Populate modal with lead data
+            document.getElementById('editLeadId').value = lead.id;
+            document.getElementById('editPracticeName').value = lead.practice_name || '';
+            document.getElementById('editOwnerName').value = lead.owner_name || '';
+            document.getElementById('editEmail').value = lead.email || '';
+            document.getElementById('editPhone').value = lead.practice_phone || '';
+            document.getElementById('editAddress').value = lead.address || '';
+            document.getElementById('editCity').value = lead.city || '';
+            document.getElementById('editState').value = lead.state || '';
+            document.getElementById('editZipCode').value = lead.zip_code || '';
+            document.getElementById('editSpecialty').value = lead.specialty || '';
+            document.getElementById('editStatus').value = lead.status || '';
+            document.getElementById('editPriority').value = lead.priority || '';
+            document.getElementById('editPtan').value = lead.ptan || '';
+            document.getElementById('editEinTin').value = lead.ein_tin || '';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editLeadModal'));
+            modal.show();
+        }
+
+        async function saveLeadChanges() {
+            const leadId = document.getElementById('editLeadId').value;
+            
+            const updatedLead = {
+                practice_name: document.getElementById('editPracticeName').value,
+                owner_name: document.getElementById('editOwnerName').value,
+                email: document.getElementById('editEmail').value,
+                practice_phone: document.getElementById('editPhone').value,
+                address: document.getElementById('editAddress').value,
+                city: document.getElementById('editCity').value,
+                state: document.getElementById('editState').value,
+                zip_code: document.getElementById('editZipCode').value,
+                specialty: document.getElementById('editSpecialty').value,
+                status: document.getElementById('editStatus').value,
+                priority: document.getElementById('editPriority').value,
+                ptan: document.getElementById('editPtan').value,
+                ein_tin: document.getElementById('editEinTin').value
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}/${leadId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedLead)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to update lead');
+                }
+
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('editLeadModal')).hide();
+                alert('Lead updated successfully!');
+                loadData(); // Refresh data
+            } catch (error) {
+                console.error('Failed to update lead:', error);
+                alert('Failed to update lead: ' + error.message);
+            }
+        }
+
+        async function sendDocs(leadId) {
+            const lead = allLeads.find(l => l.id === leadId);
+            if (!canSendDocs(lead)) {
+                alert('Lead must have email and be contacted or qualified before sending docs.');
+                return;
+            }
+
+            if (!confirm(`Send docs for ${lead.practice_name}?\n\nThis will:\n- Send lead data to external system\n- Mark lead as "DOCS_SENT"\n- Cannot be undone`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}/${leadId}/send-docs`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to send docs');
+                }
+
+                alert(`✅ Documents sent successfully!\n\nEmail: ${result.email_used}\nExternal ID: ${result.external_user_id}`);
+                loadData(); // Refresh data
+            } catch (error) {
+                console.error('Failed to send docs:', error);
+                alert(`❌ Failed to send docs: ${error.message}`);
+            }
+        }
+
+        function refreshLeads() {
+            loadData();
+        }
+
+        // Search functionality
+        async function searchLeads() {
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            
+            if (!searchQuery) {
+                alert('Please enter a search term');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/leads/search?q=${encodeURIComponent(searchQuery)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to search leads');
+                }
+
+                // Update display with search results
+                searchResults = result.leads;
+                isSearchActive = true;
+                
+                renderLeadsTable(searchResults);
+                
+                // Update search status
+                document.querySelector('.section-title').innerHTML = `
+                    <i class="fas fa-search"></i>
+                    Search Results (${result.total} of ${result.searched_in} leads)
+                `;
+                
+                // Search completed successfully
+
+            } catch (error) {
+                console.error('❌ Search failed:', error);
+                alert(`Search failed: ${error.message}`);
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            isSearchActive = false;
+            searchResults = [];
+            
+            // Restore original view
+            renderLeadsTable(allLeads);
+            document.querySelector('.section-title').innerHTML = `
+                <i class="fas fa-users"></i>
+                Lead Management Center
+            `;
+            
+            // Search cleared successfully
+        }
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchLeads();
+            }
+        }
+
+        function showCreateLeadModal() {
+            // Clear the form
+            document.getElementById('createLeadForm').reset();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('createLeadModal'));
+            modal.show();
+        }
+
+        async function createNewLead() {
+            const formData = new FormData(document.getElementById('createLeadForm'));
+            
+            const newLead = {
+                practice_name: formData.get('practice_name'),
+                owner_name: formData.get('owner_name'),
+                practice_phone: formData.get('practice_phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                city: formData.get('city'),
+                state: formData.get('state'),
+                zip_code: formData.get('zip_code'),
+                specialty: formData.get('specialty'),
+                priority: formData.get('priority'),
+                status: formData.get('status'),
+                score: parseInt(formData.get('score')) || 75,
+                ptan: formData.get('ptan'),
+                ein_tin: formData.get('ein_tin')
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.LEADS}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newLead)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create lead');
+                }
+
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('createLeadModal')).hide();
+                alert('Lead created successfully!');
+                loadData(); // Refresh data
+            } catch (error) {
+                console.error('Failed to create lead:', error);
+                alert('Failed to create lead: ' + error.message);
+            }
+        }
+
+        // Show user management buttons based on role
+        function showUserManagementButtons() {
+            if (!currentUser) return;
+            
+            const createUserBtn = document.getElementById('createUserBtn');
+            const createAgentBtn = document.getElementById('createAgentBtn');
+            
+            if (currentUser.role === 'admin') {
+                createUserBtn.style.display = 'block';
+                createAgentBtn.style.display = 'none';
+            } else if (currentUser.role === 'manager') {
+                createUserBtn.style.display = 'none';
+                createAgentBtn.style.display = 'block';
+            } else {
+                createUserBtn.style.display = 'none';
+                createAgentBtn.style.display = 'none';
+            }
+        }
+
+        // Create User Modal Functions (Admin)
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'block';
+            loadManagersForSelection();
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            document.getElementById('createUserForm').reset();
+        }
+
+        async function loadManagersForSelection() {
+            // For now, hard-coded manager1. In a full system, you'd fetch all managers
+            const managerSelect = document.getElementById('managerSelect');
+            managerSelect.innerHTML = '<option value="">Select Manager...</option>';
+            managerSelect.innerHTML += '<option value="2">Sales Manager (manager1)</option>';
+        }
+
+        async function createUser() {
+            const formData = new FormData(document.getElementById('createUserForm'));
+            
+            const userData = {
+                username: formData.get('username'),
+                full_name: formData.get('full_name'),
+                role: formData.get('role'),
+                password: formData.get('password'),
+                manager_id: formData.get('manager_id') ? parseInt(formData.get('manager_id')) : null
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create user');
+                }
+
+                closeCreateUserModal();
+                alert(`✅ ${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)} '${userData.username}' created successfully!\n${result.leads_assigned ? `Assigned ${result.leads_assigned} leads.` : ''}`);
+                
+                // User created successfully
+
+            } catch (error) {
+                console.error('❌ User creation failed:', error);
+                alert(`Failed to create user: ${error.message}`);
+            }
+        }
+
+        // Create Agent Modal Functions (Manager)
+        function showCreateAgentModal() {
+            document.getElementById('createAgentModal').style.display = 'block';
+        }
+
+        function closeCreateAgentModal() {
+            document.getElementById('createAgentModal').style.display = 'none';
+            document.getElementById('createAgentForm').reset();
+        }
+
+        async function createAgent() {
+            const formData = new FormData(document.getElementById('createAgentForm'));
+            
+            const agentData = {
+                username: formData.get('username'),
+                full_name: formData.get('full_name'),
+                role: 'agent',  // Always agent for managers
+                password: formData.get('password')
+                // manager_id will be set automatically by backend to current user
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(agentData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create agent');
+                }
+
+                closeCreateAgentModal();
+                alert(`✅ Agent '${agentData.username}' created successfully and assigned to your team!\nAssigned ${result.leads_assigned} leads to start with.`);
+                
+                // Agent created successfully
+
+            } catch (error) {
+                console.error('❌ Agent creation failed:', error);
+                alert(`Failed to create agent: ${error.message}`);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 VantagePoint CRM Loading...');
+            checkAuthentication();
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <div class="header-text">
+                        <h1><i class="fas fa-gem"></i> VantagePoint</h1>
+                        <p class="subtitle">Professional Sales Management Platform</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="user-info">
+                            <i class="fas fa-user"></i>
+                            <span id="username-display">Loading...</span>
+                        </div>
+                        <button onclick="logout()" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Performance Stats -->
+        <section class="stats-row">
+            <div class="stat-card premium">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: var(--vp-success);">
+                                                        <i class="fas fa-handshake" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <div class="stat-title">Practices Signed Up</div>
+                <div class="stat-value" id="practices-signed-up">0</div>
+                <div style="color: var(--vp-success); font-size: 0.875rem; font-weight: 500;">
+                                <i class="fas fa-trophy" aria-hidden="true"></i> Closed deals
+                </div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: var(--vp-secondary);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="stat-title">Active Leads</div>
+                <div class="stat-value" id="active-leads">0</div>
+                <div style="color: var(--vp-gray-600); font-size: 0.875rem;">
+                    <i class="fas fa-clock"></i> Ready to convert
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+                <div class="stat-title">Conversion Rate</div>
+                <div class="stat-value" id="conversion-rate">0%</div>
+                <div style="color: var(--vp-warning); font-size: 0.875rem;">
+                    <i class="fas fa-target"></i> Industry avg: 23%
+                </div>
+            </div>
+            
+            <div class="stat-card growth">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: var(--vp-warning);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="stat-title">Total Leads</div>
+                <div class="stat-value" id="total-leads">0</div>
+                <div style="color: var(--vp-gray-600); font-size: 0.875rem;" id="team-rank-display">
+                    <i class="fas fa-medal"></i> Team rank: <span id="team-rank">#1</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lead Management Section -->
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-users"></i>
+                    Lead Management Center
+                </h2>
+                                    <div class="action-buttons">
+                        <div class="search-container" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search leads..." 
+                                   style="width: 250px;" onkeypress="handleSearchKeyPress(event)">
+                            <button class="btn-primary" onclick="searchLeads()" style="padding: 0.5rem 1rem;">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                            </button>
+                            <button class="btn-secondary" onclick="clearSearch()" style="padding: 0.5rem 1rem;" title="Clear search">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- User Management Buttons (Role-based) -->
+                        <div id="userManagementButtons" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <!-- Admin sees: Create User (can create managers/agents) -->
+                            <button id="createUserBtn" class="btn-info" onclick="showCreateUserModal()" style="display: none;">
+                                <i class="fas fa-user-plus" aria-hidden="true"></i> Create User
+                            </button>
+                            <!-- Manager sees: Create Agent -->
+                            <button id="createAgentBtn" class="btn-info" onclick="showCreateAgentModal()" style="display: none;">
+                                <i class="fas fa-user-plus" aria-hidden="true"></i> Create Agent
+                            </button>
+                        </div>
+                        
+                        <button class="btn-warning" onclick="showCreateLeadModal()">
+                            <i class="fas fa-plus"></i> Create Lead
+                        </button>
+                        <button id="editLeadBtn" class="btn-primary" disabled onclick="editLead(selectedLeadId)">
+                            <i class="fas fa-edit"></i> Edit Lead
+                        </button>
+                        <button id="sendDocsBtn" class="btn-success" disabled onclick="sendDocs(selectedLeadId)">
+                            <i class="fas fa-paper-plane"></i> Send Docs
+                        </button>
+                        <button class="btn-primary" onclick="refreshLeads()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
+            </div>
+
+            <!-- Leads Table -->
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Practice Name</th>
+                            <th>Owner</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>City, State</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>PTAN</th>
+                            <th>EIN/TIN</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTable">
+                        <tr>
+                            <td colspan="11" class="text-center">Loading leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Create Lead Modal -->
+        <div class="modal fade" id="createLeadModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Lead</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createLeadForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Practice Name *</label>
+                                    <input type="text" name="practice_name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Owner Name *</label>
+                                    <input type="text" name="owner_name" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone *</label>
+                                    <input type="tel" name="practice_phone" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="email" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Address</label>
+                                    <input type="text" name="address" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">City</label>
+                                    <input type="text" name="city" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">State</label>
+                                    <input type="text" name="state" class="form-control" maxlength="2">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">ZIP Code</label>
+                                    <input type="text" name="zip_code" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Specialty</label>
+                                    <select name="specialty" class="form-control">
+                                        <option value="">Select Specialty</option>
+                                        <option value="Podiatrist">Podiatrist</option>
+                                        <option value="Orthopedic Surgery">Orthopedic Surgery</option>
+                                        <option value="Wound Care">Wound Care</option>
+                                        <option value="Primary Care">Primary Care</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Score (1-100)</label>
+                                    <input type="number" name="score" class="form-control" min="1" max="100" value="75">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Priority</label>
+                                    <select name="priority" class="form-control">
+                                        <option value="high">High</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Status</label>
+                                    <select name="status" class="form-control">
+                                        <option value="new" selected>New</option>
+                                        <option value="contacted">Contacted</option>
+                                        <option value="qualified">Qualified</option>
+                                        <option value="sold">Sold</option>
+                                        <option value="disposed">Disposed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">PTAN</label>
+                                    <input type="text" name="ptan" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">EIN/TIN</label>
+                                    <input type="text" name="ein_tin" class="form-control">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="createNewLead()">Create Lead</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Lead Modal -->
+        <div class="modal fade" id="editLeadModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Lead</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editLeadId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Practice Name</label>
+                                <input type="text" id="editPracticeName" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Owner Name</label>
+                                <input type="text" id="editOwnerName" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="editEmail" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" id="editPhone" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Address</label>
+                                <input type="text" id="editAddress" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label class="form-label">City</label>
+                                <input type="text" id="editCity" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">State</label>
+                                <input type="text" id="editState" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">ZIP Code</label>
+                                <input type="text" id="editZipCode" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Specialty</label>
+                                <input type="text" id="editSpecialty" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select id="editStatus" class="form-control">
+                                    <option value="new">New</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="qualified">Qualified</option>
+                                    <option value="sold">Sold</option>
+                                    <option value="disposed">Disposed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Priority</label>
+                                <select id="editPriority" class="form-control">
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">PTAN</label>
+                                <input type="text" id="editPtan" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">EIN/TIN</label>
+                                <input type="text" id="editEinTin" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveLeadChanges()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

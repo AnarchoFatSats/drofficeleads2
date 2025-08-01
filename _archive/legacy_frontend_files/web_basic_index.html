@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlooked Opportunity Goldmines - The Crumbs Strategy</title>
+    <!-- Bootstrap CSS for modal support -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <div class="header-text">
+                        <h1><i class="fas fa-gem"></i> Overlooked Opportunity Goldmines</h1>
+                        <p class="subtitle">"The Crumbs Strategy" - Target practices big companies ignore</p>
+                        <div class="strategy-badge">
+                            <i class="fas fa-bullseye"></i> Medicare Allograft Wound Care Targeting
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <div class="user-info">
+                            <i class="fas fa-user"></i>
+                            <span id="username-display">Admin User</span>
+                        </div>
+                        <button onclick="logout()" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Stats -->
+        <section class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="total-leads">Loading...</div>
+                    <div class="stat-label">Total Opportunities</div>
+                </div>
+            </div>
+            
+            <div class="stat-card hot">
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="goldmines">Loading...</div>
+                    <div class="stat-label">🏆 Goldmines</div>
+                </div>
+            </div>
+            
+            <div class="stat-card gold">
+                <div class="stat-icon">
+                    <i class="fas fa-gem"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="high-value">Loading...</div>
+                    <div class="stat-label">💎 High Value</div>
+                </div>
+            </div>
+            
+            <div class="stat-card perfect">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="perfect-scores">Loading...</div>
+                    <div class="stat-label">Perfect 100 Scores</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters -->
+        <section class="filters">
+            <div class="filter-group">
+                <label for="priority-filter">Priority:</label>
+                <select id="priority-filter">
+                    <option value="">All Priorities</option>
+                    <option value="A+ Priority">A+ Priority</option>
+                    <option value="A Priority">A Priority</option>
+                    <option value="B+ Priority">B+ Priority</option>
+                    <option value="B Priority">B Priority</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="category-filter">Category:</label>
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="Podiatrist">Podiatrist</option>
+                    <option value="Wound Care">Wound Care</option>
+                    <option value="Mohs Surgery">Mohs Surgery</option>
+                    <option value="Primary Care">Primary Care</option>
+                    <option value="Podiatrist + Wound Care">Podiatrist + Wound Care</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="state-filter">State:</label>
+                <select id="state-filter">
+                    <option value="">All States</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="city-filter">City:</label>
+                <input type="text" id="city-filter" placeholder="Search city name..." autocomplete="off">
+                <div id="city-suggestions" class="autocomplete-suggestions"></div>
+            </div>
+            
+            <div class="filter-group">
+                <label for="zip-filter">ZIP Code:</label>
+                <input type="text" id="zip-filter" placeholder="Enter ZIP code...">
+            </div>
+            
+            <div class="filter-group">
+                <label for="search-filter">Search:</label>
+                <input type="text" id="search-filter" placeholder="Search practice name, owner, specialty...">
+            </div>
+            
+            <div class="filter-group">
+                <label for="disposition-filter">Disposition:</label>
+                <select id="disposition-filter">
+                    <option value="">All Dispositions</option>
+                    <option value="appointment-made">Appointment Made</option>
+                    <option value="onboarded">Onboarded</option>
+                    <option value="do-not-call">Do Not Call</option>
+                    <option value="bad-phone">Bad Phone Number</option>
+                    <option value="no-answer">No Answer</option>
+                    <option value="callback">Callback Requested</option>
+                    <option value="not-interested">Not Interested</option>
+                    <option value="no-disposition">No Disposition Set</option>
+                </select>
+            </div>
+            
+            <button class="btn-reset" onclick="resetFilters()">
+                <i class="fas fa-sync-alt"></i> Reset Filters
+            </button>
+            
+            <button class="btn-reset" onclick="collapseAllLeads()" style="background: #6b7280;">
+                <i class="fas fa-compress"></i> Collapse All
+            </button>
+        </section>
+
+        <!-- Leads Table -->
+        <section class="leads-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list"></i> Priority Leads</h2>
+                <div class="export-buttons">
+                    <button class="btn-export" onclick="exportToCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Score</th>
+                            <th>Priority</th>
+                            <th>Practice Name <small style="color: #6b7280; font-weight: normal;">(Click to expand)</small></th>
+                            <th>Owner/Contact</th>
+                            <th>Practice Phone</th>
+                            <th>Owner Phone</th>
+                            <th>Category</th>
+                            <th>Providers</th>
+                            <th>City</th>
+                            <th>State</th>
+                            <th>ZIP</th>
+                            <th>Entity</th>
+                            <th>Disposition</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-tbody">
+                        <tr>
+                            <td colspan="15" class="loading">Loading leads...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="last-updated">
+                    Last updated: <span id="last-updated">Loading...</span>
+                </div>
+                <div class="data-source">
+                    Data source: NPPES National Provider Identifier Registry
+                </div>
+            </div>
+        </footer>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading leads data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS for modal functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+    <script src="lead-edit-modal.js"></script>
+</body>
+</html> 
