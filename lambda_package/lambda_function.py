@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Complete VantagePoint CRM Lambda - Production Ready with Lead Hopper System
-FEATURES: DynamoDB User Persistence + Automated Lead Distribution + 24hr Recycling
+Complete VantagePoint CRM Lambda - Production Ready with DynamoDB Lead Persistence
+FIXED: Both users AND leads now stored in DynamoDB - full persistence solution
 """
 
 import json
@@ -14,9 +14,10 @@ import boto3
 from botocore.exceptions import ClientError
 from decimal import Decimal
 
-# DynamoDB client for persistent user storage
+# DynamoDB clients for persistent storage
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 users_table = dynamodb.Table('vantagepoint-users')
+leads_table = dynamodb.Table('vantagepoint-leads')  # [OK] NEW: Leads persistent storage
 
 # Helper function to handle DynamoDB Decimal types in JSON
 def decimal_default(obj):
@@ -80,7 +81,7 @@ def decode_jwt_token(token):
     except:
         return None
 
-# ✅ FIXED: DynamoDB User Management Functions
+# [OK] FIXED: DynamoDB User Management Functions
 def get_user(username):
     """Get user from DynamoDB - replaces USERS.get(username)"""
     try:
@@ -94,10 +95,10 @@ def create_user_in_db(username, user_data):
     """Create user in DynamoDB - replaces USERS[username] = new_user"""
     try:
         users_table.put_item(Item=user_data)
-        print(f"✅ User {username} created in DynamoDB")
+        print(f"[OK] User {username} created in DynamoDB")
         return True
     except ClientError as e:
-        print(f"❌ Error creating user {username}: {e}")
+        print(f"[ERROR] Error creating user {username}: {e}")
         return False
 
 def get_all_users():
@@ -160,7 +161,7 @@ def initialize_default_users():
         existing_user = get_user(username)
         if not existing_user:
             create_user_in_db(username, user_data)
-            print(f"✅ Initialized default user: {username}")
+            print(f"[OK] Initialized default user: {username}")
 
 def get_next_user_id():
     """Get next available user ID"""
@@ -172,6 +173,19 @@ def get_next_user_id():
     return max_id + 1
 
 # Auto-incrementing IDs - Initialize based on existing data
+<<<<<<< HEAD
+NEXT_LEAD_ID = 1000  # Start lead IDs from 1000
+
+# [OK] DynamoDB Lead Management Functions (replacing in-memory LEADS array)
+def get_all_leads():
+    """Get all leads from DynamoDB"""
+    try:
+        response = leads_table.scan()
+        return response.get('Items', [])
+    except Exception as e:
+        print(f"[ERROR] Error getting leads: {e}")
+        return []
+=======
 NEXT_LEAD_ID = 400  # Start after bulk uploaded leads
 
 # ===================================================================
@@ -825,72 +839,108 @@ LEADS = [
         "created_by": "system"
     }
 ]
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
 
-def get_role_based_stats(user_role, user_id):
-    """Calculate role-based statistics"""
-    total_leads = len(LEADS)
-    
-    if user_role == "agent":
-        user_leads = [l for l in LEADS if l.get('assigned_user_id') == user_id]
-        practices_signed_up = len([l for l in user_leads if l.get('status') == 'signed_up'])
-        active_leads = len([l for l in user_leads if l.get('status') in ['new', 'contacted', 'qualified']])
-        conversion_rate = round((practices_signed_up / len(user_leads)) * 100, 1) if user_leads else 0
+def get_lead_by_id(lead_id):
+    """Get single lead by ID from DynamoDB"""
+    try:
+        response = leads_table.get_item(Key={'id': int(lead_id)})
+        return response.get('Item', None)
+    except Exception as e:
+        print(f"[ERROR] Error getting lead {lead_id}: {e}")
+        return None
+
+def create_lead(lead_data):
+    """Create new lead in DynamoDB"""
+    try:
+        # Ensure numeric fields are properly typed
+        if 'id' in lead_data:
+            lead_data['id'] = int(lead_data['id'])
+        if 'score' in lead_data:
+            lead_data['score'] = int(lead_data['score'])
+        if 'assigned_user_id' in lead_data and lead_data['assigned_user_id']:
+            lead_data['assigned_user_id'] = int(lead_data['assigned_user_id'])
         
-        return {
-            "total_leads": len(user_leads),
-            "practices_signed_up": practices_signed_up,
-            "active_leads": active_leads,
-            "conversion_rate": conversion_rate,
-            "your_rank": 1
-        }
-    
-    elif user_role == "manager":
-        all_users = get_all_users()
-        team_users = [u for u in all_users if u.get('manager_id') == user_id or u.get('id') == user_id]
-        team_user_ids = [u['id'] for u in team_users]
+        leads_table.put_item(Item=lead_data)
+        print(f"[OK] Created lead: {lead_data.get('practice_name', 'Unknown')}")
+        return lead_data
+    except Exception as e:
+        print(f"[ERROR] Error creating lead: {e}")
+        return None
+
+def update_lead(lead_id, update_data):
+    """Update lead in DynamoDB"""
+    try:
+        # Build UpdateExpression dynamically
+        update_expr = "SET "
+        expr_values = {}
+        expr_names = {}
         
-        team_leads = [l for l in LEADS if l.get('assigned_user_id') in team_user_ids]
-        practices_signed_up = len([l for l in team_leads if l.get('status') == 'signed_up'])
-        active_leads = len([l for l in team_leads if l.get('status') in ['new', 'contacted', 'qualified']])
-        conversion_rate = round((practices_signed_up / len(team_leads)) * 100, 1) if team_leads else 0
+        for key, value in update_data.items():
+            # Handle reserved keywords
+            attr_name = f"#{key}"
+            attr_value = f":{key}"
+            
+            update_expr += f"{attr_name} = {attr_value}, "
+            expr_names[attr_name] = key
+            expr_values[attr_value] = value
         
-        return {
-            "total_leads": len(team_leads),
-            "practices_signed_up": practices_signed_up,
-            "active_leads": active_leads,
-            "conversion_rate": conversion_rate,
-            "team_size": len(team_users)
-        }
-    
-    else:  # admin
-        practices_signed_up = len([l for l in LEADS if l.get('status') == 'signed_up'])
-        active_leads = len([l for l in LEADS if l.get('status') in ['new', 'contacted', 'qualified']])
-        conversion_rate = round((practices_signed_up / total_leads) * 100, 1) if total_leads else 0
+        update_expr = update_expr.rstrip(", ")
         
-        return {
-            "total_leads": total_leads,
-            "practices_signed_up": practices_signed_up,
-            "active_leads": active_leads,
-            "conversion_rate": conversion_rate
-        }
+        leads_table.update_item(
+            Key={'id': int(lead_id)},
+            UpdateExpression=update_expr,
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values
+        )
+        
+        print(f"[OK] Updated lead {lead_id}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Error updating lead {lead_id}: {e}")
+        return False
+
+def get_next_lead_id():
+    """Get next available lead ID"""
+    global NEXT_LEAD_ID
+    try:
+        all_leads = get_all_leads()
+        if all_leads:
+            max_id = max([int(lead.get('id', 0)) for lead in all_leads])
+            NEXT_LEAD_ID = max_id + 1
+        else:
+            NEXT_LEAD_ID = 1
+        return NEXT_LEAD_ID
+    except Exception as e:
+        print(f"[ERROR] Error getting next lead ID: {e}")
+        NEXT_LEAD_ID += 1
+        return NEXT_LEAD_ID
 
 def assign_leads_to_new_agent(agent_id, count=20):
     """Assign unassigned leads to new agent"""
-    unassigned_leads = [l for l in LEADS if not l.get('assigned_user_id') or l.get('assigned_user_id') == 0]
+    all_leads = get_all_leads()
+    unassigned_leads = [l for l in all_leads if not l.get('assigned_user_id') or l.get('assigned_user_id') == 0]
     assigned_count = 0
     
     for lead in unassigned_leads[:count]:
-        lead['assigned_user_id'] = agent_id
-        lead['updated_at'] = datetime.utcnow().isoformat()
+        update_lead(lead['id'], {
+            'assigned_user_id': agent_id,
+            'updated_at': datetime.utcnow().isoformat()
+        })
         assigned_count += 1
     
     return assigned_count
 
 def lambda_handler(event, context):
+<<<<<<< HEAD
+    """AWS Lambda handler for VantagePoint CRM with DynamoDB lead persistence"""
+    global NEXT_LEAD_ID
+=======
     """AWS Lambda handler for VantagePoint CRM with DynamoDB user persistence"""
     
     # Global declarations at top of function
     global NEXT_LEAD_ID, LEADS
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
     
     try:
         # Initialize default users in DynamoDB
@@ -913,7 +963,8 @@ def lambda_handler(event, context):
             body_data = {}
         
         user_count = len(get_all_users())
-        print(f"🔥 VantagePoint {method} {path} - {len(LEADS)} leads, {user_count} users (DynamoDB)")
+        all_leads = get_all_leads()
+        print(f"[HOT] VantagePoint {method} {path} - {len(all_leads)} leads, {user_count} users (DynamoDB)")
         
         # CORS headers for all responses
         response_headers = {
@@ -941,7 +992,7 @@ def lambda_handler(event, context):
             if not payload:
                 return None
             
-            return get_user(payload.get("username"))  # ✅ FIXED: DynamoDB lookup
+            return get_user(payload.get("username"))  # [OK] FIXED: DynamoDB lookup
         
         # Handle preflight OPTIONS requests
         if method == 'OPTIONS':
@@ -955,6 +1006,14 @@ def lambda_handler(event, context):
             
             return create_response(200, {
                 'status': 'healthy',
+<<<<<<< HEAD
+                'service': 'VantagePoint CRM API',
+                'leads_count': len(all_leads),
+                'users_count': len(get_all_users()),  # [OK] FIXED: DynamoDB count
+                'version': '2.0.0',
+                'user_storage': 'DynamoDB',  # [OK] NEW: Shows persistent storage
+                'lead_storage': 'DynamoDB',  # [OK] NEW: Shows lead persistence
+=======
                 'service': 'VantagePoint CRM API with Lead Hopper System',
                 'leads_count': len(LEADS),
                 'users_count': len(get_all_users()),  # ✅ FIXED: DynamoDB count
@@ -966,6 +1025,7 @@ def lambda_handler(event, context):
                 },
                 'version': '3.0.0',  # Updated for hopper system
                 'user_storage': 'DynamoDB',  # ✅ NEW: Shows persistent storage
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
                 'timestamp': datetime.utcnow().isoformat()
             })
         
@@ -1070,7 +1130,7 @@ def lambda_handler(event, context):
                 "manager_id": current_user['id'] if current_user['role'] == 'manager' else new_user_data.get('manager_id')
             }
             
-            # ✅ FIXED: Store in DynamoDB instead of memory
+            # [OK] FIXED: Store in DynamoDB instead of memory
             if not create_user_in_db(username, new_user):
                 return create_response(500, {"detail": "Failed to create user in database"})
             
@@ -1078,9 +1138,14 @@ def lambda_handler(event, context):
             assigned_count = 0
             hopper_message = ""
             if role == 'agent':
+<<<<<<< HEAD
+                assigned_count = assign_leads_to_new_agent(new_user["id"], 20)
+                print(f"[OK] Assigned {assigned_count} leads to new agent {username}")
+=======
                 assigned_count, message = hopper_system.assign_leads_to_agent(new_user_id, LEADS, 20)
                 hopper_message = f" | {message}"
                 print(f"🔄 Hopper: {message}")
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
             
             return create_response(201, {
                 "message": f"User created successfully{hopper_message}",
@@ -1093,10 +1158,14 @@ def lambda_handler(event, context):
                 },
                 "hopper_system": {
                 "leads_assigned": assigned_count,
+<<<<<<< HEAD
+                "storage": "DynamoDB"  # [OK] NEW: Confirms persistent storage
+=======
                     "auto_assignment": role == 'agent',
                     "message": message if role == 'agent' else None
                 },
                 "storage": "DynamoDB"  # ✅ NEW: Confirms persistent storage
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
             })
         
         # Organization structure endpoint - ADDED FOR FRONTEND
@@ -1185,9 +1254,15 @@ def lambda_handler(event, context):
                 })
             
             return create_response(200, {
+<<<<<<< HEAD
+                "leads": all_leads,
+                "total_leads": len(all_leads),
+                "message": "Leads retrieved successfully"
+=======
                 "users": users_list,
                 "total_count": len(users_list),
                 "message": f"Retrieved {len(users_list)} users from DynamoDB"
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
             })
         
         # Leads endpoint - GET all leads (WITH ROLE-BASED FILTERING)
@@ -1638,7 +1713,11 @@ def lambda_handler(event, context):
             status_counts = {}
             priority_counts = {}
             
+<<<<<<< HEAD
+            for lead in all_leads:
+=======
             for lead in relevant_leads:
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
                 status = lead.get("status", "unknown")
                 priority = lead.get("priority", "unknown")
                 
@@ -1651,10 +1730,14 @@ def lambda_handler(event, context):
             conversion_rate = round((closed_deals / len(relevant_leads) * 100) if relevant_leads else 0, 1)
             
             return create_response(200, {
+<<<<<<< HEAD
+                "total_leads": len(all_leads),
+=======
                 "total_leads": len(relevant_leads),
                 "active_leads": active_leads,
                 "practices_signed_up": closed_deals,  # Closed deals for frontend compatibility
                 "conversion_rate": conversion_rate,
+>>>>>>> 7c7dd4dbfe8b4ffd6c1669cc0ff38e991ce499b2
                 "status_breakdown": status_counts,
                 "priority_breakdown": priority_counts,
                 "new_leads": status_counts.get("new", 0),
@@ -1667,11 +1750,128 @@ def lambda_handler(event, context):
                 "message": f"Role-based summary for {user_role}: {current_user['username']}"
             })
         
+        # POST /api/v1/leads - Create single lead
+        if path == '/api/v1/leads' and method == 'POST':
+            try:
+                lead_data = body_data.copy()
+                lead_data['id'] = get_next_lead_id()
+                lead_data['created_at'] = datetime.utcnow().isoformat()
+                lead_data['updated_at'] = datetime.utcnow().isoformat()
+                lead_data['status'] = lead_data.get('status', 'new')
+                
+                created_lead = create_lead(lead_data)
+                if created_lead:
+                    return create_response(201, {
+                        "message": "Lead created successfully",
+                        "lead": created_lead
+                    })
+                else:
+                    return create_response(500, {"detail": "Failed to create lead"})
+            except Exception as e:
+                return create_response(400, {"detail": f"Invalid lead data: {str(e)}"})
+        
+        # POST /api/v1/leads/bulk - Bulk create leads
+        if path == '/api/v1/leads/bulk' and method == 'POST':
+            try:
+                leads_data = body_data.get('leads', [])
+                if not leads_data or not isinstance(leads_data, list):
+                    return create_response(400, {"detail": "Invalid format. Expected {\"leads\": [...]}"})
+                
+                created_leads = []
+                failed_leads = []
+                
+                for lead_data in leads_data:
+                    try:
+                        lead_data['id'] = get_next_lead_id()
+                        lead_data['created_at'] = datetime.utcnow().isoformat()
+                        lead_data['updated_at'] = datetime.utcnow().isoformat()
+                        lead_data['status'] = lead_data.get('status', 'new')
+                        
+                        created_lead = create_lead(lead_data)
+                        if created_lead:
+                            created_leads.append(created_lead)
+                        else:
+                            failed_leads.append(lead_data.get('practice_name', 'Unknown'))
+                    except Exception as e:
+                        failed_leads.append(f"{lead_data.get('practice_name', 'Unknown')}: {str(e)}")
+                
+                return create_response(200, {
+                    "message": f"Bulk upload completed. {len(created_leads)} created, {len(failed_leads)} failed",
+                    "created_count": len(created_leads),
+                    "failed_count": len(failed_leads),
+                    "failed_leads": failed_leads
+                })
+            except Exception as e:
+                return create_response(400, {"detail": f"Bulk upload error: {str(e)}"})
+        
+        # PUT /api/v1/leads/{id} - Update lead (including assignment)
+        if path.startswith('/api/v1/leads/') and method == 'PUT':
+            try:
+                lead_id = path.split('/')[-1]
+                if not lead_id.isdigit():
+                    return create_response(400, {"detail": "Invalid lead ID"})
+                
+                # Get current lead
+                current_lead = get_lead_by_id(int(lead_id))
+                if not current_lead:
+                    return create_response(404, {"detail": "Lead not found"})
+                
+                # Validate update data
+                allowed_fields = [
+                    'assigned_user_id', 'status', 'docs_sent', 
+                    'practice_phone', 'email', 'priority',
+                    'practice_name', 'owner_name', 'address', 
+                    'city', 'state', 'zip_code', 'specialty',
+                    'score', 'ptan', 'ein_tin'
+                ]
+                
+                update_data = {k: v for k, v in body_data.items() if k in allowed_fields}
+                if not update_data:
+                    return create_response(400, {"detail": "No valid fields to update"})
+                
+                # Add timestamp
+                update_data['updated_at'] = datetime.utcnow().isoformat()
+                
+                # Update in DynamoDB
+                if update_lead(int(lead_id), update_data):
+                    updated_lead = get_lead_by_id(int(lead_id))
+                    return create_response(200, {
+                        "message": "Lead updated successfully",
+                        "lead": updated_lead
+                    })
+                else:
+                    return create_response(500, {"detail": "Failed to update lead"})
+                    
+            except Exception as e:
+                return create_response(400, {"detail": f"Update error: {str(e)}"})
+        
+        # DELETE /api/v1/leads/{id} - Delete lead
+        if path.startswith('/api/v1/leads/') and method == 'DELETE':
+            try:
+                lead_id = path.split('/')[-1]
+                if not lead_id.isdigit():
+                    return create_response(400, {"detail": "Invalid lead ID"})
+                
+                # Check if lead exists
+                current_lead = get_lead_by_id(int(lead_id))
+                if not current_lead:
+                    return create_response(404, {"detail": "Lead not found"})
+                
+                # Delete from DynamoDB
+                leads_table.delete_item(Key={'id': int(lead_id)})
+                
+                return create_response(200, {
+                    "message": f"Lead {lead_id} deleted successfully"
+                })
+                    
+            except Exception as e:
+                return create_response(400, {"detail": f"Delete error: {str(e)}"})
+        
         # Default response
         return create_response(404, {"detail": "Endpoint not found"})
         
     except Exception as e:
-        print(f"❌ Lambda error: {e}")
+        print(f"[ERROR] Lambda error: {e}")
         return {
             'statusCode': 500,
             'headers': response_headers,
