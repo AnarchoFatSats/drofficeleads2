@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VantagePoint CRM - Master Admin Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .main-container {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .overview-section {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .metric-card h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .status-good { color: #27ae60; }
+        .status-warning { color: #f39c12; }
+        .status-critical { color: #e74c3c; }
+
+        .chart-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .chart-title {
+            color: #667eea;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .agents-table-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .agents-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .agents-table th,
+        .agents-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .agents-table th {
+            background: #f8f9fa;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .agents-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .score-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .score-premium { background: #9b59b6; }
+        .score-excellent { background: #3498db; }
+        .score-good { background: #27ae60; }
+        .score-fair { background: #f39c12; }
+        .score-poor { background: #e74c3c; }
+
+        .alert-section {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-top: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-warning {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid #f39c12;
+            color: #f39c12;
+        }
+
+        .alert-critical {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid #e74c3c;
+            color: #e74c3c;
+        }
+
+        .alert-success {
+            background: rgba(39, 174, 96, 0.1);
+            border-left: 4px solid #27ae60;
+            color: #27ae60;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 8px;
+            margin: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .overview-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-chart-line"></i> Master Admin Analytics</h1>
+        <div class="user-info">
+            <span id="currentUser">Loading...</span>
+            <button class="refresh-btn" onclick="refreshData()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Overview Metrics -->
+        <div class="overview-section" id="overviewSection">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading analytics...
+            </div>
+        </div>
+
+        <!-- Score Distribution Chart -->
+        <div class="chart-section">
+            <h3 class="chart-title"><i class="fas fa-star"></i> Score Distribution</h3>
+            <div class="chart-container">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Lead Type Breakdown Chart -->
+        <div class="chart-section">
+            <h3 class="chart-title"><i class="fas fa-pie-chart"></i> Lead Types</h3>
+            <div class="chart-container">
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Conversion Metrics Chart -->
+        <div class="chart-section">
+            <h3 class="chart-title"><i class="fas fa-funnel-dollar"></i> Conversion Metrics</h3>
+            <div class="chart-container">
+                <canvas id="conversionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Agent Performance Table -->
+        <div class="agents-table-section">
+            <h3 class="chart-title"><i class="fas fa-users"></i> Agent Performance Overview</h3>
+            <table class="agents-table" id="agentsTable">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Total Leads</th>
+                        <th>Premium Leads</th>
+                        <th>Conversion Rate</th>
+                        <th>Deals Closed</th>
+                        <th>Activity Score</th>
+                    </tr>
+                </thead>
+                <tbody id="agentsTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">Loading agent data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- System Alerts -->
+        <div class="alert-section">
+            <h3 class="chart-title"><i class="fas fa-bell"></i> System Alerts & Insights</h3>
+            <div id="alertsContainer">
+                <div class="loading">Loading alerts...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://api.vantagepointcrm.com';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        let analyticsData = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuthentication();
+            await loadAnalytics();
+            
+            // Set up auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+
+        async function checkAuthentication() {
+            if (!authToken) {
+                redirectToLogin();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    document.getElementById('currentUser').textContent = `${currentUser.username} (${currentUser.role})`;
+                    
+                    if (currentUser.role !== 'admin') {
+                        showError('Admin access required for this dashboard');
+                        return;
+                    }
+                } else {
+                    redirectToLogin();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                redirectToLogin();
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                showLoading();
+                
+                const response = await fetch(`${API_BASE}/api/v1/admin/analytics`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                analyticsData = data.analytics;
+                
+                renderOverviewMetrics();
+                renderCharts();
+                renderAgentsTable();
+                renderAlerts();
+                
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+                showError(`Failed to load analytics: ${error.message}`);
+            }
+        }
+
+        function renderOverviewMetrics() {
+            const overview = analyticsData.lead_hopper_overview;
+            const scoreDistribution = analyticsData.score_distribution;
+            const realTime = analyticsData.real_time_metrics;
+            
+            const overviewHtml = `
+                <div class="metric-card">
+                    <h3><i class="fas fa-database"></i> Total Lead Inventory</h3>
+                    <div class="metric-value">${overview.total_leads.toLocaleString()}</div>
+                    <div class="metric-label">Total leads in system</div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3><i class="fas fa-box-open"></i> Available Hopper</h3>
+                    <div class="metric-value ${overview.available_inventory < 100 ? 'status-warning' : 'status-good'}">${overview.unassigned_leads.toLocaleString()}</div>
+                    <div class="metric-label">Unassigned leads ready</div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3><i class="fas fa-percentage"></i> Utilization Rate</h3>
+                    <div class="metric-value ${overview.utilization_rate > 80 ? 'status-warning' : 'status-good'}">${overview.utilization_rate}%</div>
+                    <div class="metric-label">Leads currently assigned</div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3><i class="fas fa-gem"></i> Premium Inventory</h3>
+                    <div class="metric-value status-good">${scoreDistribution.premium_90_plus.unassigned.toLocaleString()}</div>
+                    <div class="metric-label">Premium leads (90+) available</div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3><i class="fas fa-clock"></i> Added Today</h3>
+                    <div class="metric-value">${realTime.leads_added_last_24h}</div>
+                    <div class="metric-label">Leads added last 24h</div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3><i class="fas fa-user-check"></i> Assigned Today</h3>
+                    <div class="metric-value">${realTime.leads_assigned_last_24h}</div>
+                    <div class="metric-label">Leads assigned last 24h</div>
+                </div>
+            `;
+            
+            document.getElementById('overviewSection').innerHTML = overviewHtml;
+        }
+
+        function renderCharts() {
+            renderScoreChart();
+            renderTypeChart();
+            renderConversionChart();
+        }
+
+        function renderScoreChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            const scoreData = analyticsData.score_distribution;
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Premium (90+)', 'Excellent (80-89)', 'Very Good (70-79)', 'Good (60-69)', 'Below 60'],
+                    datasets: [{
+                        data: [
+                            scoreData.premium_90_plus.total,
+                            scoreData.excellent_80_89.total,
+                            scoreData.very_good_70_79.total,
+                            scoreData.good_60_69.total,
+                            scoreData.below_standard_under_60.total
+                        ],
+                        backgroundColor: ['#9b59b6', '#3498db', '#27ae60', '#f39c12', '#e74c3c'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTypeChart() {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+            const typeData = analyticsData.lead_type_breakdown.type_distribution;
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: typeData.map(item => item.name),
+                    datasets: [{
+                        label: 'Lead Count',
+                        data: typeData.map(item => item.count),
+                        backgroundColor: '#667eea',
+                        borderColor: '#5a6fd8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderConversionChart() {
+            const ctx = document.getElementById('conversionChart').getContext('2d');
+            const conversionData = analyticsData.operational_insights.conversion_metrics;
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Closed Won', 'Closed Lost', 'In Progress'],
+                    datasets: [{
+                        data: [
+                            conversionData.closed_won,
+                            conversionData.closed_lost,
+                            conversionData.total_contacted - conversionData.closed_won - conversionData.closed_lost
+                        ],
+                        backgroundColor: ['#27ae60', '#e74c3c', '#f39c12'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAgentsTable() {
+            const agents = analyticsData.agent_workload_distribution.agents;
+            
+            const tableBody = agents.map(agent => `
+                <tr>
+                    <td>
+                        <strong>${agent.full_name}</strong><br>
+                        <small>${agent.username}</small>
+                    </td>
+                    <td>${agent.total_assigned}</td>
+                    <td>
+                        <span class="score-badge score-premium">${agent.score_breakdown.premium_90_plus}</span>
+                        <span class="score-badge score-excellent">${agent.score_breakdown.excellent_80_89}</span>
+                    </td>
+                    <td>${agent.conversion_rate.toFixed(1)}%</td>
+                    <td>${agent.deals_closed}</td>
+                    <td>${agent.activity_score}</td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('agentsTableBody').innerHTML = tableBody;
+        }
+
+        function renderAlerts() {
+            const alerts = analyticsData.real_time_metrics.inventory_alerts;
+            const quality = analyticsData.operational_insights.quality_metrics;
+            
+            let alertsHtml = '';
+            
+            if (alerts.low_premium_inventory) {
+                alertsHtml += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Low premium inventory: Less than 50 premium leads (90+) available
+                    </div>
+                `;
+            }
+            
+            if (alerts.low_total_inventory) {
+                alertsHtml += `
+                    <div class="alert alert-critical">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Critical: Less than 100 total leads available in hopper
+                    </div>
+                `;
+            }
+            
+            if (alerts.quality_degradation) {
+                alertsHtml += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-chart-line-down"></i>
+                        Quality degradation: Recent uploads have lower quality scores
+                    </div>
+                `;
+            }
+            
+            if (quality.quality_percentage > 90) {
+                alertsHtml += `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        Excellent: ${quality.quality_percentage.toFixed(1)}% of leads are high-quality (60+)
+                    </div>
+                `;
+            }
+            
+            if (!alertsHtml) {
+                alertsHtml = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        All systems operating normally - no alerts
+                    </div>
+                `;
+            }
+            
+            document.getElementById('alertsContainer').innerHTML = alertsHtml;
+        }
+
+        function showLoading() {
+            document.getElementById('overviewSection').innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading analytics...
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('overviewSection').innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+        }
+
+        function redirectToLogin() {
+            window.location.href = 'index.html';
+        }
+
+        async function refreshData() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            
+            await loadAnalytics();
+            
+            refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
+        }
+    </script>
+</body>
+</html>

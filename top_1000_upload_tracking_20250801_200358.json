@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-08-01T20:03:58.698333",
+  "total_leads_processed": 1000,
+  "total_uploaded": 0,
+  "source_files": [
+    "recalibrated_rural_physician_leads.xlsx",
+    "rural_physician_leads_crm.xlsx"
+  ],
+  "score_range": {
+    "min": 63.0,
+    "max": 100.0
+  }
+}
