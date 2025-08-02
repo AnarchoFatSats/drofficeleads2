@@ -7,6 +7,7 @@ const CONFIG = {
     ENDPOINTS: {
         // Authentication
         LOGIN: '/api/v1/auth/login',
+        ME: '/api/v1/auth/me',
         
         // Lead Management
         LEADS: '/api/v1/leads',

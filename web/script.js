@@ -26,22 +26,41 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load data from backend API
 
 // Authentication functions
-function initializeAuth() {
+async function initializeAuth() {
     console.log('🔐 Initializing authentication...');
     authToken = localStorage.getItem('token'); // Match login.html key
-    const userData = localStorage.getItem('user_data');
     
     console.log('🔑 Token exists:', !!authToken);
-    console.log('👤 User data exists:', !!userData);
     
-    if (authToken && userData) {
+    if (authToken) {
         try {
-            currentUser = JSON.parse(userData);
-            console.log('✅ User authenticated:', currentUser.username);
+            // Verify token and get current user context from backend
+            console.log('🔍 Verifying token with /auth/me...');
+            const userResponse = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!userResponse.ok) {
+                console.log('❌ Token invalid, redirecting to login');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user_data');
+                showLogin();
+                return;
+            }
+            
+            currentUser = await userResponse.json();
+            localStorage.setItem('user_data', JSON.stringify(currentUser));
+            
+            console.log('✅ User authenticated:', currentUser.username, 'Role:', currentUser.role);
             showDashboard();
             loadData();
+            
         } catch (e) {
-            console.error('❌ Invalid user data:', e);
+            console.error('❌ Authentication verification failed:', e);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_data');
             showLogin();
         }
     } else {
@@ -175,11 +194,25 @@ async function handleLogin(e) {
         
         const data = await response.json();
         
-        // Store authentication data (match production login.html)
+        // Store token and get current user context from /auth/me
         authToken = data.access_token;
-        currentUser = data.user;
         localStorage.setItem('token', authToken); // Match production key
+        
+        // CRITICAL FIX: Get current user context for role-based filtering
+        const userResponse = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.ME}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!userResponse.ok) {
+            throw new Error('Failed to get user context');
+        }
+        
+        currentUser = await userResponse.json();
         localStorage.setItem('user_data', JSON.stringify(currentUser));
+        
+        console.log('✅ User authenticated:', currentUser.username, 'Role:', currentUser.role, 'ID:', currentUser.id);
         
         // Show dashboard
         showDashboard();
@@ -258,6 +291,47 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
+// CRITICAL FIX: Role-based lead filtering function
+function applyRoleBasedFiltering(leads) {
+    if (!currentUser || !Array.isArray(leads)) {
+        console.log('⚠️ No user context or invalid leads array, returning all leads');
+        return leads;
+    }
+    
+    const userRole = currentUser.role;
+    const userId = currentUser.id;
+    
+    console.log(`🎭 Applying ${userRole} role filtering for user ID: ${userId}`);
+    
+    switch (userRole) {
+        case 'agent':
+            // Agents see ONLY their assigned leads
+            const agentLeads = leads.filter(lead => lead.assigned_user_id === userId);
+            console.log(`🎯 Agent filtering: ${agentLeads.length} assigned leads found`);
+            if (agentLeads.length > 0) {
+                agentLeads.forEach(lead => {
+                    console.log(`   • ${lead.practice_name} (ID: ${lead.id})`);
+                });
+            }
+            return agentLeads;
+            
+        case 'manager':
+            // Managers see their leads + their agents' leads
+            // For now, show all leads (TODO: implement team hierarchy)
+            console.log(`👔 Manager viewing all leads (team hierarchy not yet implemented)`);
+            return leads;
+            
+        case 'admin':
+            // Admins see all leads
+            console.log(`👑 Admin viewing all ${leads.length} leads`);
+            return leads;
+            
+        default:
+            console.log(`⚠️ Unknown role: ${userRole}, showing no leads for security`);
+            return [];
+    }
+}
+
 // Load data from API instead of JSON files
 async function loadData() {
     try {
@@ -288,12 +362,15 @@ async function loadData() {
         
         console.log('✅ Processed data - allLeads:', allLeads.length, 'items');
         
+        // CRITICAL FIX: Apply role-based filtering
+        filteredLeads = applyRoleBasedFiltering(allLeads);
+        console.log(`🎯 Role-based filtering applied - User: ${currentUser?.role}, Filtered leads: ${filteredLeads.length}/${allLeads.length}`);
+        
         // Initialize the UI
         console.log('🔧 Initializing UI components...');
         updateUserInfo(); // Update user display
         updateDashboardStats();
         populateFilterDropdowns();
-        filteredLeads = [...allLeads];
         console.log('📋 filteredLeads set:', filteredLeads.length);
         renderLeadsTable();
         updateLastUpdated();
