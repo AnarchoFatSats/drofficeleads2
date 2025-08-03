@@ -698,7 +698,7 @@ def lambda_handler(event, context):
                 return create_response(401, {"detail": "Invalid credentials"})
         
         # Authentication check for protected endpoints
-        protected_endpoints = ['/api/v1/leads', '/api/v1/auth/me', '/api/v1/admin/analytics']
+        protected_endpoints = ['/api/v1/leads', '/api/v1/auth/me', '/api/v1/admin/analytics', '/api/v1/summary', '/api/v1/users']
         if any(path.startswith(endpoint) for endpoint in protected_endpoints):
             auth_header = headers.get('Authorization', headers.get('authorization', ''))
             if not auth_header or not auth_header.startswith('Bearer '):
@@ -827,6 +827,61 @@ def lambda_handler(event, context):
                 "user_role": user_role,
                 "optimized": True
             })
+        
+        # Create new user (admin/manager only)
+        if path == '/api/v1/users' and method == 'POST':
+            # Check permissions
+            if current_user['role'] not in ['admin', 'manager']:
+                return create_response(403, {"detail": "Only admins and managers can create users"})
+            
+            new_user_data = body_data
+            username = new_user_data.get('username')
+            password = new_user_data.get('password', 'admin123')  # Default password
+            role = new_user_data.get('role', 'agent')
+            
+            if not username:
+                return create_response(400, {"detail": "Username is required"})
+            
+            # Check if user exists
+            if get_user_by_username(username):
+                return create_response(400, {"detail": "Username already exists"})
+            
+            # Managers can only create agents
+            if current_user['role'] == 'manager' and role != 'agent':
+                return create_response(403, {"detail": "Managers can only create agent accounts"})
+            
+            # Get next user ID
+            try:
+                all_users = get_all_users()
+                max_id = max([int(u.get('id', 0)) for u in all_users], default=0)
+                new_user_id = max_id + 1
+            except:
+                new_user_id = random.randint(100, 999)
+            
+            # Create new user
+            new_user = {
+                "id": new_user_id,
+                "username": username,
+                "password": password,  # Store plain text for current system
+                "role": role,
+                "email": f"{username}@vantagepoint.com",
+                "full_name": new_user_data.get('full_name', username.title()),
+                "is_active": True,
+                "created_at": datetime.utcnow().isoformat(),
+                "manager_id": current_user['id'] if current_user['role'] == 'manager' else new_user_data.get('manager_id')
+            }
+            
+            # Store in DynamoDB
+            try:
+                users_table.put_item(Item=new_user)
+                
+                return create_response(201, {
+                    "message": f"User {username} created successfully",
+                    "user": {k: v for k, v in new_user.items() if k != 'password'},
+                    "default_password": password if password == 'admin123' else None
+                })
+            except Exception as e:
+                return create_response(500, {"detail": f"Failed to create user: {str(e)}"})
         
         # MASTER ADMIN ANALYTICS ENDPOINT - NEW!
         if path == '/api/v1/admin/analytics' and method == 'GET':
