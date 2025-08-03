@@ -2260,7 +2260,7 @@
                 .filter(([status, count]) => count > 0)
                 .map(([status, count]) => `
                     <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${status.replace('_', ' ').toUpperCase()}</span>
+                        <span>${(status || 'unknown').replace('_', ' ').toUpperCase()}</span>
                         <strong>${count}</strong>
                     </div>
                 `).join('');
@@ -3448,7 +3448,7 @@
                             <div class="team-member-card">
                                 <div class="team-member-header">
                                     <div class="team-member-avatar">
-                                        ${manager.manager_name.charAt(0).toUpperCase()}
+                                        ${(manager.manager_name || 'M').charAt(0).toUpperCase()}
                                     </div>
                                     <div class="team-member-info">
                                         <h4>${manager.manager_name}</h4>

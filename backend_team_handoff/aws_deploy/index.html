@@ -914,8 +914,8 @@
             }
 
             const rows = allLeads.map(lead => {
-                const statusBadge = `<span class="badge status-${lead.status}">${lead.status.toUpperCase()}</span>`;
-                const priorityBadge = `<span class="badge priority-${lead.priority}">${lead.priority.toUpperCase()}</span>`;
+                const statusBadge = `<span class="badge status-${lead.status || 'new'}">${(lead.status || 'new').toUpperCase()}</span>`;
+                const priorityBadge = `<span class="badge priority-${lead.priority || 'medium'}">${(lead.priority || 'medium').toUpperCase()}</span>`;
                 
                 return `
                     <tr onclick="selectLead(${lead.id})" style="cursor: pointer;">
