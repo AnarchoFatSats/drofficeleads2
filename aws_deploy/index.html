@@ -437,7 +437,7 @@
             
             .leads-filters {
                 justify-content: flex-start;
-                width: 100%;
+            width: 100%;
             }
             
             .filter-select, 
@@ -567,19 +567,19 @@
             .header-content {
                 padding: 1rem;
                 flex-direction: column;
-                text-align: center;
-            }
+            text-align: center;
+        }
 
             .header-stats {
                 gap: 1rem;
                 flex-wrap: wrap;
                 justify-content: center;
             }
-
+            
             .main-content {
                 padding: 1rem;
             }
-
+            
             .overview-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
@@ -631,7 +631,7 @@
             }
 
             .lead-card-header {
-                display: flex;
+            display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
                 margin-bottom: 0.75rem;
@@ -646,7 +646,7 @@
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 0.5rem;
-                font-size: 0.875rem;
+            font-size: 0.875rem;
             }
 
             .lead-card-label {
@@ -1893,7 +1893,7 @@
                 try {
                     await loadUserData();
                     showDashboard();
-                } catch (error) {
+            } catch (error) {
                     console.error('Token validation failed:', error);
                     showLogin();
                 }
@@ -2519,33 +2519,33 @@
                             <div class="lead-type-header">
                                 <h4>${analytics.specialty_category}</h4>
                                 <div class="lead-type-priority">${analytics.priority_level} Priority</div>
-                            </div>
+                        </div>
                             <div class="lead-type-stats">
                                 <div class="lead-type-stat">
                                     <div class="stat-value">${analytics.total_leads}</div>
                                     <div class="stat-label">Total Leads</div>
-                                </div>
+                        </div>
                                 <div class="lead-type-stat">
                                     <div class="stat-value" style="color: var(--accent);">${(analytics.overall_conversion_rate * 100).toFixed(1)}%</div>
                                     <div class="stat-label">Conversion Rate</div>
-                                </div>
+                        </div>
                                 <div class="lead-type-stat">
                                     <div class="stat-value">${(analytics.overall_contact_rate * 100).toFixed(1)}%</div>
                                     <div class="stat-label">Contact Rate</div>
-                                </div>
-                            </div>
+                    </div>
+                </div>
                             ${analytics.best_agent_name ? `
                                 <div class="best-agent">
                                     <strong>Top Performer:</strong> ${analytics.best_agent_name}
                                     <span style="color: var(--accent);">(${(analytics.best_agent_conversion_rate * 100).toFixed(1)}%)</span>
-                                </div>
+                    </div>
                             ` : ''}
                             <div class="lead-type-location">
                                 <small>${analytics.state_region} • ${analytics.practice_size} Practice • ${analytics.lead_source}</small>
-                            </div>
-                        </div>
+                                </div>
+                                </div>
                     `).join('')}
-                </div>
+                            </div>
             `;
             
             container.innerHTML = html;
@@ -2618,19 +2618,19 @@
                                 <div class="metric">
                                     <span class="metric-value">${perf.total_assigned}</span>
                                     <span class="metric-label">Assigned</span>
-                                </div>
+                            </div>
                                 <div class="metric">
                                     <span class="metric-value">${perf.total_contacted}</span>
                                     <span class="metric-label">Contacted</span>
-                                </div>
+                        </div>
                                 <div class="metric">
                                     <span class="metric-value">${perf.total_closed_won}</span>
                                     <span class="metric-label">Closed Won</span>
-                                </div>
+                    </div>
                                 <div class="metric highlight">
                                     <span class="metric-value">${(perf.conversion_rate * 100).toFixed(1)}%</span>
                                     <span class="metric-label">Conversion</span>
-                                </div>
+                    </div>
                             </div>
                             <div class="specialization-details">
                                 <small>${perf.state_region} • ${perf.practice_size} • ${perf.score_range} Score</small>
@@ -2680,11 +2680,11 @@
                             <div class="agent-info">
                                 <div class="agent-name">${agent.agent_name}</div>
                                 <div class="agent-specialty">Best at: ${agent.best_specialty}</div>
-                            </div>
+                    </div>
                             <div class="agent-metrics">
                                 <div class="agent-conversion">${(agent.best_conversion * 100).toFixed(1)}%</div>
                                 <div class="agent-stats">${agent.total_closed_won}/${agent.total_assigned} closed</div>
-                            </div>
+                    </div>
                         </div>
                     `).join('')}
                 </div>
@@ -2768,7 +2768,7 @@
                         <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority || 'N/A'}</span>
                     </div>
                     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
-                </div>
+                        </div>
                 
                 <div class="lead-detail-content">
                     <!-- Provider Identity Section -->
@@ -2779,16 +2779,16 @@
                                 <label>NPI:</label>
                                 <span class="detail-value">${lead.npi || 'N/A'}</span>
                                 ${lead.npi ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.npi}', 'NPI')" title="Copy NPI">📋</button>` : ''}
-                            </div>
+                    </div>
                             <div class="detail-item">
                                 <label>EIN:</label>
                                 <span class="detail-value">${lead.ein || 'N/A'}</span>
                                 ${lead.ein ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.ein}', 'EIN')" title="Copy EIN">📋</button>` : ''}
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Entity Type:</label>
                                 <span class="detail-value">${lead.entity_type || 'N/A'}</span>
-                            </div>
+            </div>
                             <div class="detail-item">
                                 <label>Sole Proprietor:</label>
                                 <span class="detail-value">${lead.is_sole_proprietor === 'True' ? 'Yes' : lead.is_sole_proprietor === 'False' ? 'No' : 'N/A'}</span>
@@ -2804,11 +2804,11 @@
                                 <label>Practice Name:</label>
                                 <span class="detail-value">${lead.practice_name || 'N/A'}</span>
                                 ${lead.practice_name ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_name}', 'Practice Name')" title="Copy">📋</button>` : ''}
-                            </div>
+                    </div>
                             <div class="detail-item">
                                 <label>Owner/Contact:</label>
                                 <span class="detail-value">${lead.owner_name || 'N/A'}</span>
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Provider Count:</label>
                                 <span class="detail-value">${lead.providers || 1} provider${(lead.providers || 1) > 1 ? 's' : ''}</span>
@@ -2821,9 +2821,9 @@
                                 <label>Specialties:</label>
                                 <span class="detail-value">${lead.specialties || 'N/A'}</span>
                             </div>
-                        </div>
-                    </div>
-
+                </div>
+            </div>
+            
                     <!-- Contact Information Section -->
                     <div class="detail-section">
                         <h3><i class="fas fa-phone"></i> Contact Information</h3>
@@ -2834,22 +2834,22 @@
                                     ${lead.practice_phone ? `<a href="tel:${lead.practice_phone}" class="phone-link">${lead.practice_phone}</a>` : 'N/A'}
                                 </span>
                                 ${lead.practice_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.practice_phone}', 'Practice Phone')" title="Copy">📋</button>` : ''}
-                            </div>
+                    </div>
                             <div class="detail-item">
                                 <label>Owner Phone:</label>
                                 <span class="detail-value">
                                     ${lead.owner_phone ? `<a href="tel:${lead.owner_phone}" class="phone-link">${lead.owner_phone}</a>` : 'N/A'}
                                 </span>
                                 ${lead.owner_phone ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.owner_phone}', 'Owner Phone')" title="Copy">📋</button>` : ''}
-                            </div>
+                </div>
                             <div class="detail-item full-width">
                                 <label>Full Address:</label>
                                 <span class="detail-value">${lead.address || `${lead.city || ''}, ${lead.state || ''} ${lead.zip_code || ''}`.trim() || 'N/A'}</span>
                                 ${(lead.address || lead.city) ? `<button class="btn-copy-field" onclick="copyToClipboard('${lead.address || `${lead.city}, ${lead.state} ${lead.zip_code}`}', 'Address')" title="Copy">📋</button>` : ''}
                             </div>
-                        </div>
-                    </div>
-
+                </div>
+            </div>
+            
                     <!-- Scoring & Priority Section -->
                     <div class="detail-section">
                         <h3><i class="fas fa-chart-line"></i> Scoring & Priority</h3>
@@ -2857,29 +2857,29 @@
                             <div class="detail-item">
                                 <label>Overall Score:</label>
                                 <span class="detail-value score-highlight">${lead.score || 0}</span>
-                            </div>
+                    </div>
                             <div class="detail-item">
                                 <label>Priority Level:</label>
                                 <span class="priority-badge priority-${lead.priority?.toLowerCase().replace('+', '-plus')}">${lead.priority || 'N/A'}</span>
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Medicare Allograft Score:</label>
                                 <span class="detail-value">${lead.medicare_allograft_score || 0}</span>
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Overlooked Opportunity Score:</label>
                                 <span class="detail-value">${lead.overlooked_opportunity_score || 0}</span>
-                            </div>
+            </div>
                             <div class="detail-item">
                                 <label>Rural Verified Score:</label>
                                 <span class="detail-value">${lead.rural_verified_score || 0}</span>
-                            </div>
+                    </div>
                             <div class="detail-item full-width">
                                 <label>Scoring Breakdown:</label>
                                 <span class="detail-value">${formatScoringBreakdown(lead.scoring_breakdown)}</span>
-                            </div>
-                        </div>
-                    </div>
+                </div>
+                </div>
+            </div>
 
                     <!-- CRM Status & Assignment Section -->
                     <div class="detail-section">
@@ -2888,29 +2888,29 @@
                             <div class="detail-item">
                                 <label>Status:</label>
                                 <span class="status-badge status-${lead.status}">${lead.status?.replace('_', ' ') || 'N/A'}</span>
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Source:</label>
                                 <span class="detail-value">${lead.source || 'N/A'}</span>
-                            </div>
+            </div>
                             <div class="detail-item">
                                 <label>Assigned Agent ID:</label>
                                 <span class="detail-value">${lead.assigned_user_id || 'Unassigned'}</span>
-                            </div>
+                </div>
                             <div class="detail-item">
                                 <label>Assigned Date:</label>
                                 <span class="detail-value">${formatShortDate(lead.assigned_at)}</span>
-                            </div>
+            </div>
                             <div class="detail-item">
                                 <label>Contact Attempts:</label>
                                 <span class="detail-value">${lead.contact_attempts || 0}</span>
-                            </div>
+                        </div>
                             <div class="detail-item">
                                 <label>Times Recycled:</label>
                                 <span class="detail-value">${lead.times_recycled || 0}</span>
-                            </div>
                         </div>
                     </div>
+            </div>
 
                     <!-- Activity & Follow-up Section -->
                     <div class="detail-section">
@@ -2919,21 +2919,21 @@
                             <div class="detail-item">
                                 <label>Last Contact:</label>
                                 <span class="detail-value">${formatDate(lead.last_contact_date)}</span>
-                            </div>
+            </div>
                             <div class="detail-item">
                                 <label>Next Follow-up:</label>
                                 <span class="detail-value">${formatDate(lead.next_follow_up)}</span>
-                            </div>
+                    </div>
                             <div class="detail-item">
                                 <label>Recycling Eligible:</label>
                                 <span class="detail-value">${formatDate(lead.recycling_eligible_at)}</span>
-                            </div>
+                                </div>
                             <div class="detail-item full-width">
                                 <label>Previous Agents:</label>
                                 <span class="detail-value">${formatPreviousAgents(lead.previous_agents)}</span>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                                </div>
 
                     <!-- Metadata Section -->
                     <div class="detail-section">
@@ -2942,7 +2942,7 @@
                             <div class="detail-item">
                                 <label>Created:</label>
                                 <span class="detail-value">${formatDate(lead.created_at)}</span>
-                            </div>
+                                </div>
                             <div class="detail-item">
                                 <label>Last Updated:</label>
                                 <span class="detail-value">${formatDate(lead.updated_at)}</span>
@@ -2950,10 +2950,10 @@
                             <div class="detail-item">
                                 <label>Lead ID:</label>
                                 <span class="detail-value">${lead.id}</span>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                                </div>
+                                </div>
 
                 <div class="lead-detail-actions">
                     <button class="btn btn-primary" onclick="callLead(${lead.id}); this.closest('.modal-overlay').remove();">
@@ -2965,7 +2965,7 @@
                     <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove();">
                         Close
                     </button>
-                </div>
+                                </div>
             `;
 
             modalOverlay.appendChild(modalContent);
@@ -3213,7 +3213,7 @@
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <h3>No Team Members Yet</h3>
                         <p>Use the "Add Team Member" button above to start building your team!</p>
-                    </div>
+                            </div>
                 `;
                 return;
             }
@@ -3226,12 +3226,12 @@
                     <div class="card" style="margin-bottom: 1rem;">
                         <div class="card-header">
                             <h3 class="card-title">Team Statistics</h3>
-                        </div>
+                                </div>
                         <div class="team-stats">
                             <div class="team-stat">
                                 <div class="value">${stats.team_size}</div>
                                 <div class="label">Team Size</div>
-                            </div>
+                                </div>
                             <div class="team-stat">
                                 <div class="value">${stats.total_deals_closed}</div>
                                 <div class="label">Total Deals</div>
@@ -3239,13 +3239,13 @@
                             <div class="team-stat">
                                 <div class="value">${stats.average_percentile}%</div>
                                 <div class="label">Avg Percentile</div>
-                            </div>
+                                </div>
                             <div class="team-stat">
                                 <div class="value">${stats.average_conversion_rate}%</div>
                                 <div class="label">Avg Conversion</div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                                </div>
                     
                     <!-- Team Members -->
                     <div class="team-grid">
@@ -3254,37 +3254,37 @@
                                 <div class="team-member-header">
                                     <div class="team-member-avatar">
                                         ${member.full_name ? member.full_name.charAt(0).toUpperCase() : member.username.charAt(0).toUpperCase()}
-                                    </div>
+                                </div>
                                     <div class="team-member-info">
                                         <h4>${member.full_name || member.username}</h4>
                                         <div class="role">${member.role}</div>
-                                    </div>
-                                </div>
+                            </div>
+                    </div>
                                 <div class="team-stats">
                                     <div class="team-stat">
                                         <div class="value">${member.current_percentile.toFixed(1)}%</div>
                                         <div class="label">Percentile</div>
-                                    </div>
+                    </div>
                                     <div class="team-stat">
                                         <div class="value">#${member.current_rank}</div>
                                         <div class="label">Rank</div>
-                                    </div>
+                </div>
                                     <div class="team-stat">
                                         <div class="value">${member.deals_closed}</div>
                                         <div class="label">Deals Closed</div>
-                                    </div>
+            </div>
                                     <div class="team-stat">
                                         <div class="value">${member.is_active ? '✅' : '❌'}</div>
                                         <div class="label">Status</div>
-                                    </div>
-                                </div>
+        </div>
+                    </div>
                                 <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
                                     Joined: ${new Date(member.created_at).toLocaleDateString()}
-                                </div>
+                            </div>
                             </div>
                         `).join('')}
-                    </div>
-                </div>
+                        </div>
+                            </div>
             `;
         }
 
@@ -3316,7 +3316,7 @@
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <h3>All Agents Assigned</h3>
                         <p>All agents are currently assigned to managers.</p>
-                    </div>
+                            </div>
                 `;
                 return;
             }
@@ -3330,22 +3330,22 @@
                                 <div class="team-member-header">
                                     <div class="team-member-avatar">
                                         ${agent.full_name ? agent.full_name.charAt(0).toUpperCase() : agent.username.charAt(0).toUpperCase()}
-                                    </div>
+                        </div>
                                     <div class="team-member-info">
                                         <h4>${agent.full_name || agent.username}</h4>
                                         <div class="role">${agent.role}</div>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
                                 <div class="team-stats">
                                     <div class="team-stat">
                                         <div class="value">${agent.current_percentile.toFixed(1)}%</div>
                                         <div class="label">Percentile</div>
-                                    </div>
+                            </div>
                                     <div class="team-stat">
                                         <div class="value">#${agent.current_rank}</div>
                                         <div class="label">Rank</div>
-                                    </div>
-                                </div>
+                            </div>
+                            </div>
                                 <div style="margin-top: 0.5rem;">
                                     <select id="manager-select-${agent.id}" style="width: 100%; margin-bottom: 0.5rem;">
                                         <option value="">Select Manager...</option>
@@ -3353,11 +3353,11 @@
                                     <button class="btn btn-sm btn-primary" onclick="assignAgentToManager(${agent.id})">
                                         Assign to Manager
                                     </button>
-                                </div>
+                        </div>
                             </div>
                         `).join('')}
-                    </div>
-                </div>
+                            </div>
+                        </div>
             `;
             
             // Load managers for each dropdown
@@ -3449,38 +3449,38 @@
                                 <div class="team-member-header">
                                     <div class="team-member-avatar">
                                         ${(manager.manager_name || 'M').charAt(0).toUpperCase()}
-                                    </div>
+                            </div>
                                     <div class="team-member-info">
                                         <h4>${manager.manager_name}</h4>
                                         <div class="role">Manager</div>
-                                    </div>
-                                </div>
+                        </div>
+                            </div>
                                 <div class="team-stats">
                                     <div class="team-stat">
                                         <div class="value">${manager.team_size}</div>
                                         <div class="label">Team Size</div>
-                                    </div>
+                            </div>
                                     <div class="team-stat">
                                         <div class="value">${manager.team_deals_closed}</div>
                                         <div class="label">Team Deals</div>
-                                    </div>
+                        </div>
                                     <div class="team-stat">
                                         <div class="value">${manager.avg_team_percentile}%</div>
                                         <div class="label">Avg Percentile</div>
-                                    </div>
+                    </div>
                                     <div class="team-stat">
                                         <div class="value">${manager.team_conversion_rate}%</div>
                                         <div class="label">Conversion Rate</div>
-                                    </div>
-                                </div>
+                    </div>
+                </div>
                                 ${manager.top_performer ? `
                                     <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
                                         Top Performer: ${manager.top_performer.full_name || manager.top_performer.username}
-                                    </div>
+            </div>
                                 ` : ''}
-                            </div>
+        </div>
                         `).join('')}
-                    </div>
+    </div>
                 </div>
             `;
         }
